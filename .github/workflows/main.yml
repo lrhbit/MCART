@@ -1,4 +1,5 @@
 name: 构建 Windows 原生版 (GraalVM native-image)
+
 on:
   workflow_dispatch:
   push:
@@ -18,6 +19,7 @@ jobs:
       run:
         working-directory: mc-pixel-art-converter/mc-pixel-art-converter
         shell: pwsh
+
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -48,7 +50,7 @@ jobs:
           java -version
           native-image --version
 
-      - name: 编译主程序与资源
+      - name: 编译主程序、资源与采集器
         run: |
           New-Item -ItemType Directory -Force target/classes | Out-Null
           Get-ChildItem src/main/java -Recurse -Filter *.java |
@@ -56,38 +58,80 @@ jobs:
             Select-Object -ExpandProperty FullName > target/srcs.txt
           javac -encoding UTF-8 --release 17 -d target/classes -cp "lib/*" @target/srcs.txt
           Copy-Item -Recurse src/main/resources/* target/classes/ -Force
+          javac -encoding UTF-8 -cp "target/classes;lib/*" -d target/classes scripts/native/NativeTrace.java
 
-      - name: CI agent采集元数据（源码完全不动）
+      - name: 采集原生镜像元数据（NativeTrace 自动走完界面后自行退出）
+        run: java -agentlib:native-image-agent=config-output-dir=target/classes/META-INF/native-image/mcart/ci -cp "target/classes;lib/flatlaf-3.7.1.jar" NativeTrace
+
+      - name: native-image 编译为 mcart.exe（控制台子系统，便于自检与排错）
+        run: native-image --no-fallback --parallelism=1 --gc=serial -J-Xmx5500m -cp "target/classes;lib/flatlaf-3.7.1.jar" -H:Class=com.axolotl.mcart.Main -o target/dist/mcart -H:+ReportExceptionStackTraces -H:+AddAllCharsets --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
+
+      - name: 准备随包字体配置（文本版 fontconfig.properties，勿放 .bfc）
+        shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force target/graal-config | Out-Null
-          java -Djava.awt.headless=true -DskipUI=true -agentlib:native-image-agent=config-output-dir=target/graal-config `
-            -cp "target/classes;lib/*" com.axolotl.mcart.Main
+          New-Item -ItemType Directory -Force target/dist/lib | Out-Null
+          $jh = $env:JAVA_HOME
+          Write-Host "JAVA_HOME=$jh"
+          # 关键：sun.awt.fontconfig 指向的文件会被 JDK 一律按“文本 properties”解析，
+          # 因此这里必须放文本配置（JDK 自带的 fontconfig.properties.src 改名），
+          # 绝不能放二进制 fontconfig.bfc（会被当文本解析 -> getInitELC NPE）。
+          $srcProps = Join-Path $jh 'lib\fontconfig.properties.src'
+          if (-not (Test-Path $srcProps)) { throw "JDK 缺少文本字体配置模板: $srcProps" }
+          Copy-Item $srcProps 'target/dist/lib/fontconfig.properties' -Force
+          # flavormap：AWT 数据传输/复制粘贴所需，缺失不致命，能带上就带上
+          $fm = Join-Path $jh 'lib\flavormap.properties'
+          if (Test-Path $fm) { Copy-Item $fm 'target/dist/lib/flavormap.properties' -Force; Write-Host '已随包 flavormap.properties' } else { Write-Host 'JDK 中未找到 flavormap.properties，跳过' }
+          #双保险：确保没有任何 .bfc 被放进 lib（setupFontConfig 会优先选中它并导致 NPE）
+          Get-ChildItem 'target/dist/lib' -Filter '*.bfc' -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item $_.FullName -Force; Write-Host "移除二进制字体配置: $($_.Name)" }
+          #内容自检：文本字体配置必须包含 version 与 sequence 定义
+          $text = Get-Content 'target/dist/lib/fontconfig.properties' -Raw -Encoding UTF8
+          Write-Host ("fontconfig.properties 字节数: " + (Get-Item 'target/dist/lib/fontconfig.properties').Length)
+          if ($text -notmatch 'version') { throw 'fontconfig.properties 缺少 version 定义，内容不完整' }
+          if ($text -notmatch 'sequence') { throw 'fontconfig.properties 缺少 sequence 定义，内容不完整' }
+          Write-Host '=== target/dist/lib 内容 ==='
+          Get-ChildItem target/dist/lib | Select-Object Name,Length
 
-      - name: native-image 编译为 mcart.exe
+      - name: CI 真机冒烟自测（实际运行 exe，确认字体初始化与主窗口创建成功）
+        shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force target/dist | Out-Null
-          native-image --no-fallback `
-            --parallelism=1 --gc=serial -J-Xmx5500m `
-            --enable-swing `
-            --enable-native-access=ALL-UNNAMED `
-            --install-exit-handlers `
-            -H:ConfigurationFileDirectories=target/graal-config `
-            -H:Class=com.axolotl.mcart.Main `
-            -o target/dist/mcart `
-            -H:+ReportExceptionStackTraces `
-            -H:+AddAllCharsets `
-            -H:+IncludeAllLocales `
-            -H:IncludeResources=.*fontconfig.* `
-            -H:IncludeResources=.*fonts/.* `
-            -H:IncludeResources=com/formdev/flatlaf/** `
-            -H:IncludeResources=net/miginfocom/** `
-            --initialize-at-run-time=com.axolotl.mcart.core,com.axolotl.mcart.ui
+          Push-Location target/dist
+          try {
+            $logPath = Join-Path (Get-Location) 'launch-log.txt'
+            if (Test-Path $logPath) { Remove-Item $logPath -Force }
+            $p = Start-Process -FilePath '.\mcart.exe' -WorkingDirectory (Get-Location).Path -PassThru
+            $ok = $false
+            for ($i=0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 2
+              if (Test-Path $logPath) {
+                $t = Get-Content $logPath -Raw -Encoding UTF8
+                if ($t -match '主窗口已显示') { $ok = $true; break }
+                if ($t -match 'Fontconfig|no ComponentUI|创建窗口失败|启动致命错误') { Write-Host '检测到启动失败关键字'; break }
+              }
+              if ($p.HasExited) {
+                Start-Sleep -Seconds 1
+                if (Test-Path $logPath) {
+                  $t = Get-Content $logPath -Raw -Encoding UTF8
+                  if ($t -match '主窗口已显示') { $ok = $true }
+                }
+                break
+              }
+            }
+            Write-Host '================= launch-log.txt ================='
+            if (Test-Path $logPath) { Get-Content $logPath -Raw -Encoding UTF8 } else { Write-Host '(未生成 launch-log.txt)' }
+            Write-Host '=================================================='
+            Get-Process -Name mcart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            if (-not $p.HasExited) { try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {} }
+            if (-not $ok) { throw '冒烟自测失败：exe 未能成功初始化字体并创建主窗口，详见上方 launch-log' }
+            Write-Host '冒烟自测通过：字体初始化正常，主窗口成功创建。'
+          } finally {
+            Pop-Location
+          }
 
-      - name: 打包为 zip
+      - name: 打包为 zip（exe + 同目录 dll + lib 字体配置）
         run: |
           Compress-Archive -Path target/dist/* -DestinationPath mcart-windows-x64.zip -Force
-          Write-Host "=== dist 产物清单 ==="
-          Get-ChildItem target/dist | Select-Object Name,Length
+          Write-Host '=== dist 产物清单 ==='
+          Get-ChildItem target/dist -Recurse | Select-Object FullName,Length
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
