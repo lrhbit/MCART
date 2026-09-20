@@ -56,6 +56,14 @@ jobs:
           java -agentlib:native-image-agent=config-output-dir=target/classes/META-INF/native-image/mcart/ci \
             -cp "target/classes;lib/flatlaf-3.7.1.jar" NativeTrace
 
+      - name: 加载 MSVC x64 编译环境（Windows 上链接 exe 必需）
+        # windows-latest 已预装 Visual Studio 2022 Build Tools，但默认 shell 未激活其
+        # 环境变量；这一步自动调用 vcvars64.bat 设置 cl.exe/link.exe 等路径，
+        # 并将环境变量持久化到后续步骤，native-image 链接 mcart.exe 时才能找到 MSVC。
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: native-image 编译为 mcart.exe
         run: |
           mkdir -p target/dist
