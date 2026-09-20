@@ -1,45 +1,30 @@
-name: Unzip
+name: Auto Unzip Zip
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - '**.zip' # 只要上传zip就触发
+  workflow_dispatch: # 支持手动点按钮运行
 
 jobs:
-  unzip-from-release:
+  unzip:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      # 需要写仓库事件的权限
-      repository-projects: write
+      contents: write # 必须这个权限，才能回写仓库
     steps:
-      - name: Checkout仓库代码
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 下载Release里的zip文件
+      - name: Unzip all zip files
         run: |
-          REPO=${{ github.repository }}
-          TAG="v0.0.1"
-          ZIP_NAME="test.zip"
-          ASSET_URL="https://github.com/$REPO/releases/download/$TAG/$ZIP_NAME"
-          echo "下载地址: $ASSET_URL"
-          wget -O "$ZIP_NAME" "$ASSET_URL"
+          for f in *.zip; do
+            unzip -o "$f"
+            rm "$f"
+          done
 
-      - name: 解压zip（自动剥离外层文件夹）
-        run: |
-          unzip -o "$ZIP_NAME" -d temp_dir
-          mv temp_dir/*/* ./ 2>/dev/null || mv temp_dir/* ./
-          rm -rf temp_dir
-          rm "$ZIP_NAME"
-
-      - name: 提交解压后的文件回仓库
+      - name: Commit & Push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "🤖 Auto unzip from release $TAG" || true
+          git commit -m "🤖 Auto unzip zip file" || true
           git push
-
-      # ==========新增：解压推送完成后触发构建 workflow==========
-      - name: Trigger build‑windows‑native workflow
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: run‑windows‑build
