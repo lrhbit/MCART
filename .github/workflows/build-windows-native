@@ -1,10 +1,8 @@
-name: 构建 Windows 原生版 (GraalVM native-image)
-
-# 触发方式：
-#  1) 推送到 main/master（改动源码/依赖/脚本时）自动构建；
-#  2) GitHub 网页 Actions 页手动点 “Run workflow”。
+name:  Windows 原生版构建 (GraalVM native-image)
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [ run‑windows‑build ]   # 接收unzip发过来的事件
   push:
     branches: [ main, master ]
     paths:
@@ -16,13 +14,11 @@ on:
 jobs:
   windows-native:
     name: Windows x64 原生 exe
-    runs-on: windows-latest   # 微软免费提供的真实 Windows 虚拟机，已预装 Visual Studio 2022 (MSVC) + Windows SDK
-
+    runs-on: windows-latest
     defaults:
       run:
-        working-directory: mc-pixel-art-converter   # 内层 content root（外层是 IDEA 工程根）
+        working-directory: mc-pixel-art-converter
         shell: bash
-
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -51,7 +47,6 @@ jobs:
           javac -encoding UTF-8 -cp "target/classes;lib/*" -d target/classes scripts/native/NativeTrace.java
 
       - name: 在 Windows 上采集原生镜像元数据（文件对话框 / ImageIO / ShellFolder 等）
-        # NativeTrace 会自动弹出并关闭文件选择器、颜色选择器并走完生成/导出，无需人工操作。
         run: |
           java -agentlib:native-image-agent=config-output-dir=target/classes/META-INF/native-image/mcart/ci \
             -cp "target/classes;lib/flatlaf-3.7.1.jar" NativeTrace
