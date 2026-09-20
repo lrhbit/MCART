@@ -4,17 +4,14 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'mc-pixel-art-converter/src/**'
-      - 'mc-pixel-art-converter/lib/**'
-      - 'mc-pixel-art-converter/scripts/**'
+      - 'src/**'
+      - 'lib/**'
+      - 'scripts/**'
       - '.github/workflows/**'
 jobs:
   windows-native:
     name: Windows x64 原生 exe
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: mc-pixel-art-converter
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -69,12 +66,11 @@ jobs:
 
       - name: 打包为 zip（exe + 同目录 dll）
         shell: pwsh
-        working-directory: ${{ github.workspace }}/mc-pixel-art-converter
         run: Compress-Archive -Path target/dist/* -DestinationPath mcart-windows-x64.zip -Force
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: mcart-windows-x64
-          path: mc-pixel-art-converter/mcart-windows-x64.zip
+          path: mcart-windows-x64.zip
           retention-days: 30
