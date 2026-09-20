@@ -4,9 +4,9 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'mc-pixel-art-converter/src/**'
-      - 'mc-pixel-art-converter/lib/**'
-      - 'mc-pixel-art-converter/scripts/**'
+      - 'mc-pixel-art-converter/mc-pixel-art-converter/src/**'
+      - 'mc-pixel-art-converter/mc-pixel-art-converter/lib/**'
+      - 'mc-pixel-art-converter/mc-pixel-art-converter/scripts/**'
       - '.github/workflows/**'
 
 jobs:
@@ -15,10 +15,18 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: mc-pixel-art-converter
+        working-directory: mc-pixel-art-converter/mc-pixel-art-converter
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
+
+      - name: 调试：打印项目目录内容
+        shell: pwsh
+        run: |
+          Write-Host "=== 当前工作目录 ==="
+          Get-Location
+          Write-Host "=== 列出当前目录全部文件/子文件夹 ==="
+          Get-ChildItem -Force
 
       - name: 安装 GraalVM CE JDK 25（含 native-image）
         uses: graalvm/setup-graalvm@v1
@@ -76,5 +84,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mcart-windows-x64
-          path: mc-pixel-art-converter/mcart-windows-x64.zip
+          path: mc-pixel-art-converter/mc-pixel-art-converter/mcart-windows-x64.zip
           retention-days: 30
