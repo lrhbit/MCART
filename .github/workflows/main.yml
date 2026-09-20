@@ -1,4 +1,5 @@
 name: 构建 Windows 原生版 (GraalVM native-image)
+
 on:
   workflow_dispatch:
   push:
@@ -13,20 +14,21 @@ jobs:
   windows-native:
     name: Windows x64 原生 exe
     runs-on: windows-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: mc-pixel-art-converter/mc-pixel-art-converter
+        shell: pwsh
+
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
 
-      - name: 调试：打印项目目录内容
-        shell: pwsh
+      - name: 校验工程目录
         run: |
-          Write-Host "=== 当前工作目录 ==="
-          Get-Location
-          Write-Host "=== 列出当前目录全部文件/子文件夹 ==="
-          Get-ChildItem -Force
+          Write-Host "PWD=$((Get-Location).Path)"
+          if (-not (Test-Path 'lib/flatlaf-3.7.1.jar')) { throw '找不到 lib/flatlaf-3.7.1.jar，工程目录层级不对' }
+          Get-ChildItem -Force | Select-Object -ExpandProperty Name
 
       - name: 安装 GraalVM CE JDK 25（含 native-image）
         uses: graalvm/setup-graalvm@v1
@@ -43,32 +45,31 @@ jobs:
         with:
           arch: x64
 
-      - name: 确认工具链(pwsh)
-        shell: pwsh
+      - name: 确认工具链
         run: |
           java -version
           native-image --version
 
       - name: 编译主程序与资源
-        shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force target\classes
-          Get-ChildItem src\main\java -Recurse -Filter *.java | Where-Object FullName -NotMatch 'META-INF' | Select-Object -ExpandProperty FullName > target\srcs.txt
-          javac -encoding UTF-8 --release 17 -d target\classes -cp "lib\*" @target\srcs.txt
-          Copy-Item -Recurse src\main\resources\* target\classes\ -Force
-          javac -encoding UTF-8 -cp "target\classes;lib\*" -d target\classes scripts\native\NativeTrace.java
+          New-Item -ItemType Directory -Force target/classes | Out-Null
+          Get-ChildItem src/main/java -Recurse -Filter *.java |
+            Where-Object FullName -NotMatch 'META-INF' |
+            Select-Object -ExpandProperty FullName > target/srcs.txt
+          javac -encoding UTF-8 --release 17 -d target/classes -cp "lib/*" @target/srcs.txt
+          Copy-Item -Recurse src/main/resources/* target/classes/ -Force
+          javac -encoding UTF-8 -cp "target/classes;lib/*" -d target/classes scripts/native/NativeTrace.java
 
-      - name: 在 Windows 上采集原生镜像元数据
-        shell: pwsh
+      - name: 在 Windows 上采集原生镜像元数据（文件对话框/ImageIO/ShellFolder）
         run: |
           java -agentlib:native-image-agent=config-output-dir=target/classes/META-INF/native-image/mcart/ci `
             -cp "target/classes;lib/flatlaf-3.7.1.jar" NativeTrace
 
-      - name: native-image 编译为 mcart.exe
-        shell: pwsh
+      - name: native-image 编译为 mcart.exe（单线程+串行GC，控制在 8GB 内存内，防 OOM）
         run: |
-          New-Item -ItemType Directory -Force target\dist
+          New-Item -ItemType Directory -Force target/dist | Out-Null
           native-image --no-fallback `
+            --parallelism=1 --gc=serial -J-Xmx5500m `
             -cp "target/classes;lib/flatlaf-3.7.1.jar" `
             -H:Class=com.axolotl.mcart.Main `
             -o target/dist/mcart.exe `
@@ -77,8 +78,10 @@ jobs:
             --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
 
       - name: 打包为 zip（exe + 同目录 dll）
-        shell: pwsh
-        run: Compress-Archive -Path target/dist/* -DestinationPath mcart-windows-x64.zip -Force
+        run: |
+          Compress-Archive -Path target/dist/* -DestinationPath mcart-windows-x64.zip -Force
+          Write-Host "=== dist 产物清单 ==="
+          Get-ChildItem target/dist | Select-Object Name,Length
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
