@@ -65,7 +65,7 @@ jobs:
           java -agentlib:native-image-agent=config-output-dir=target/classes/META-INF/native-image/mcart/ci `
             -cp "target/classes;lib/flatlaf-3.7.1.jar" NativeTrace
 
-      - name: native-image 编译为 mcart.exe（单线程+串行GC，控制在 8GB 内存内，防 OOM）
+      - name: native-image 编译为 mcart.exe（诊断版：控制台子系统，输出启动日志）
         run: |
           New-Item -ItemType Directory -Force target/dist | Out-Null
           native-image --no-fallback `
@@ -73,8 +73,6 @@ jobs:
             -cp "target/classes;lib/flatlaf-3.7.1.jar" `
             -H:Class=com.axolotl.mcart.Main `
             -o target/dist/mcart `
-            -H:NativeLinkerOption=/SUBSYSTEM:WINDOWS `
-            -H:NativeLinkerOption=/ENTRY:mainCRTStartup `
             -H:+ReportExceptionStackTraces `
             -H:+AddAllCharsets `
             --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
