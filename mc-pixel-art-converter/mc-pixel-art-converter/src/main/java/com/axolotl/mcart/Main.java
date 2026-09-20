@@ -19,6 +19,7 @@ import java.nio.file.Paths;
  */
 public class Main {
     private static PrintWriter logWriter;
+    private static boolean flatLafInstalled;
 
     public static void main(String[] args) {
         initLog();
@@ -48,9 +49,11 @@ public class Main {
             ensureJavaHome();
             log("步骤[2/4] java.home 已设置=" + System.getProperty("java.home"));
 
+            setupFontConfig();
+
             log("步骤[3/4] 即将 FlatDarkLaf.setup() ...");
-            FlatDarkLaf.setup();
-            log("步骤[3/4] FlatLaf 初始化完成");
+            flatLafInstalled = installLaf();
+            log("步骤[3/4] FlatLaf.setup 返回，installed=" + flatLafInstalled);
 
             log("步骤[4/4] 即将创建主窗口 ...");
             SwingUtilities.invokeLater(() -> {
@@ -169,6 +172,56 @@ public class Main {
             } catch (Throwable t) {
                 log("  [失败] " + name + " : " + t);
             }
+        }
+    }
+
+    /**
+     * 显式指定随包携带的字体配置文件，修复 GraalVM Windows 原生镜像
+     * “Fontconfig head is null” 导致 FlatLaf 初始化失败、所有 Swing 控件
+     * 报 no ComponentUI class 的问题。必须在任何 AWT/Font 类初始化之前调用。
+     */
+    private static void setupFontConfig() {
+        try {
+            File dir = exeDir();
+            if (dir == null) dir = new File(System.getProperty("user.dir", "."));
+            String[] candidates = {
+                    "lib" + File.separator + "fontconfig.bfc",
+                    "lib" + File.separator + "fontconfig.properties",
+                    "fontconfig.bfc",
+                    "fontconfig.properties"
+            };
+            for (String rel : candidates) {
+                File f = new File(dir, rel);
+                if (f.isFile()) {
+                    System.setProperty("sun.awt.fontconfig", f.getAbsolutePath());
+                    log("sun.awt.fontconfig -> " + f.getAbsolutePath() + " (" + f.length() + " 字节)");
+                    return;
+                }
+            }
+            log("未找到随包 fontconfig 文件，依赖镜像内置资源");
+        } catch (Throwable t) {
+            log("setupFontConfig 异常: " + t);
+        }
+    }
+
+    /**
+     * 安装 FlatLaf 并检测是否真正成功。FlatLaf.setup() 内部会吞掉字体子系统
+     * 异常（仅记 SEVERE）而正常返回，因此用当前 LookAndFeel 类名二次确认。
+     */
+    private static boolean installLaf() {
+        try {
+            FlatDarkLaf.setup();
+            LookAndFeel laf = UIManager.getLookAndFeel();
+            boolean ok = laf != null && laf.getClass().getName().toLowerCase().contains("flat");
+            if (!ok) {
+                log("FlatLaf 未生效，当前 LAF=" + (laf == null ? "null" : laf.getClass().getName()));
+            }
+            return ok;
+        } catch (Throwable t) {
+            log("FlatLaf.setup 抛出: " + t);
+            if (logWriter != null) t.printStackTrace(logWriter);
+            t.printStackTrace();
+            return false;
         }
     }
 
