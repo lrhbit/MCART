@@ -48,21 +48,24 @@ jobs:
           java -version
           native-image --version
 
+      - name: 安装虚拟显示用于Swing GUI采集
+        uses: alvr/setup-virtual-display@v1
+        with:
+          display: 99
+
       - name: 编译主程序与资源
         run: |
           New-Item -ItemType Directory -Force target/classes | Out-Null
           Get-ChildItem src/main/java -Recurse -Filter *.java |
             Where-Object FullName -NotMatch 'META-INF' |
             Select-Object -ExpandProperty FullName > target/srcs.txt
-          # 编译：cp包含全部lib下jar
           javac -encoding UTF-8 --release 17 -d target/classes -cp "lib/*" @target/srcs.txt
           Copy-Item -Recurse src/main/resources/* target/classes/ -Force
 
       - name: 在 Windows 上采集原生镜像元数据（agent采集反射/资源）
         run: |
           New-Item -ItemType Directory -Force target/graal-config | Out-Null
-          # 直接运行主类Main，打开完整UI采集，不要用NativeTrace
-          java -agentlib:native-image-agent=config-output-dir=target/graal-config,config-merge-dir=target/graal-config `
+          java -agentlib:native-image-agent=config-output-dir=target/graal-config `
             -cp "target/classes;lib/*" com.axolotl.mcart.Main
 
       - name: native-image 编译为 mcart.exe（诊断版：控制台子系统，输出启动日志）
