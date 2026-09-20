@@ -74,6 +74,7 @@ jobs:
             -H:Class=com.axolotl.mcart.Main `
             -o target/dist/mcart `
             -H:NativeLinkerOption=/SUBSYSTEM:WINDOWS `
+            -H:NativeLinkerOption=/ENTRY:mainCRTStartup `
             -H:+ReportExceptionStackTraces `
             -H:+AddAllCharsets `
             --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
