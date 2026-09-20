@@ -35,10 +35,9 @@ jobs:
         with:
           java-version: '25'
           version: '25.0.2'
-          components: 'native-image'
           distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          set-java-default: 'true'
+          set-java-home: 'true'
 
       - name: 加载 MSVC x64 编译环境
         uses: ilammy/msvc-dev-cmd@v1
