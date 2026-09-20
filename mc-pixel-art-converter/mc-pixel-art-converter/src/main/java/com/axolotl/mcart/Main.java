@@ -4,55 +4,147 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.axolotl.mcart.ui.MainFrame;
 import javax.swing.*;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * 诊断版启动入口：每个启动阶段都同时输出到控制台和 exe 同目录的 launch-log.txt，
+ * 每个 DLL 加载前后都落盘（flush），即便发生原生层闪退，日志最后一行即崩溃点。
+ */
 public class Main {
+    private static PrintWriter logWriter;
+
     public static void main(String[] args) {
-        // 必须在任何 AWT/Swing 类（含 FlatLaf）初始化之前预加载捆绑的原生库，
-        // 否则 Windows 中文路径下会因 java.library.path 乱码而加载不到 awt.dll。
-        preloadBundledNativeLibraries();
-        ensureJavaHome();
-        FlatDarkLaf.setup();
-        SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));
+        initLog();
+        log("======== MCart 启动诊断开始 ========");
+        try {
+            log("os.name=" + System.getProperty("os.name"));
+            log("os.arch=" + System.getProperty("os.arch"));
+            log("java.version=" + System.getProperty("java.version"));
+            log("file.encoding=" + System.getProperty("file.encoding"));
+            log("native.image.kind=" + System.getProperty("org.graalvm.nativeimage.imagecode"));
+            log("user.dir=" + System.getProperty("user.dir"));
+            log("java.home(before)=" + System.getProperty("java.home"));
+            log("java.library.path=" + System.getProperty("java.library.path"));
+            File exeDir = exeDir();
+            log("exeDir(ProcessHandle)=" + (exeDir == null ? "null" : exeDir.getAbsolutePath()));
+
+            // 全局未捕获异常（含 EDT）落盘
+            Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+                log("[未捕获异常 in " + t.getName() + "] " + e);
+                if (logWriter != null) e.printStackTrace(logWriter);
+                e.printStackTrace();
+            });
+
+            preloadBundledNativeLibraries();
+            log("步骤[1/4] 原生库预加载完成");
+
+            ensureJavaHome();
+            log("步骤[2/4] java.home 已设置=" + System.getProperty("java.home"));
+
+            log("步骤[3/4] 即将 FlatDarkLaf.setup() ...");
+            FlatDarkLaf.setup();
+            log("步骤[3/4] FlatLaf 初始化完成");
+
+            log("步骤[4/4] 即将创建主窗口 ...");
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    new MainFrame().setVisible(true);
+                    log("步骤[4/4] 主窗口已显示，启动成功");
+                } catch (Throwable t) {
+                    log("EDT 创建窗口失败: " + t);
+                    if (logWriter != null) t.printStackTrace(logWriter);
+                    t.printStackTrace();
+                }
+            });
+        } catch (Throwable t) {
+            log("!!! 启动致命错误: " + t);
+            if (logWriter != null) t.printStackTrace(logWriter);
+            t.printStackTrace();
+            closeLog();
+            try {
+                JOptionPane.showMessageDialog(null,
+                        "启动失败：\n" + t,
+                        "MCart 启动错误", JOptionPane.ERROR_MESSAGE);
+            } catch (Throwable ignore) {
+                // GUI 都起不来时忽略
+            }
+            System.exit(1);
+        }
+    }
+
+    private static void initLog() {
+        try {
+            File dir = exeDir();
+            if (dir == null) dir = new File(System.getProperty("user.dir", "."));
+            File lf = new File(dir, "launch-log.txt");
+            OutputStream os = new FileOutputStream(lf, false);
+            logWriter = new PrintWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8), true);
+        } catch (Throwable t) {
+            logWriter = null;
+            System.out.println("[log] 无法创建 launch-log.txt: " + t);
+        }
+    }
+
+    private static void log(String msg) {
+        String line = "[" + System.currentTimeMillis() + "] " + msg;
+        System.out.println(line);
+        System.out.flush();
+        if (logWriter != null) {
+            logWriter.println(line);
+            logWriter.flush();
+        }
+    }
+
+    private static void closeLog() {
+        if (logWriter != null) {
+            try { logWriter.flush(); logWriter.close(); } catch (Throwable ignore) {}
+        }
+    }
+
+    private static File exeDir() {
+        try {
+            String exe = ProcessHandle.current().info().command().orElse(null);
+            if (exe != null) {
+                File p = new File(exe).getParentFile();
+                if (p != null && p.isDirectory()) return p;
+            }
+        } catch (Throwable ignore) {
+            // 忽略，返回 null
+        }
+        return null;
     }
 
     /**
-     * GraalVM native-image 在 Windows 上会把“可执行文件所在目录”加入
-     * {@code java.library.path}，但其路径按 UTF-8 解码系统返回的 GBK/ANSI 字节，
-     * 当安装目录含中文等非 ASCII 字符时该路径会乱码（例如“MC地图画…”变成
-     * “MC鍦板浘鐢?”），导致 {@code System.loadLibrary("awt")} 在乱码目录中找不到
-     * 同目录的 awt.dll，启动即抛 {@link UnsatisfiedLinkError}。
-     *
-     * 这里在 AWT 初始化前，用基于宽字符 API 的 {@link ProcessHandle} 取得 exe 的
-     * 正确 Unicode 绝对路径，并按依赖顺序 {@link System#load(String)} 预加载全部
-     * 捆绑 DLL；此后 AWT 内部的 loadLibrary 会因“库已加载”而直接返回。
-     * 仅在 Windows 原生镜像下生效，普通 JVM 与 Linux/macOS 行为完全不变。
+     * GraalVM native-image 在 Windows 上把 exe 目录加入 java.library.path 时，
+     * 对非 ASCII（中文）路径会按 UTF-8 误解码 GBK 字节而产生乱码，导致
+     * loadLibrary("awt") 在乱码目录中找不到同目录 DLL。这里在 AWT 初始化前
+     * 用宽字符 API 得到的正确 Unicode 绝对路径逐个 System.load。
+     * 仅 Windows 原生镜像生效；普通 JVM 与 Linux/macOS 不变。
      */
     private static void preloadBundledNativeLibraries() {
         boolean nativeImage = "runtime".equals(System.getProperty("org.graalvm.nativeimage.imagecode"));
         boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        log("preload 判定: nativeImage=" + nativeImage + ", windows=" + windows);
         if (!nativeImage || !windows) {
+            log("preload 跳过（非 Windows 原生镜像）");
             return;
         }
-        File dir = null;
-        try {
-            String exe = ProcessHandle.current().info().command().orElse(null);
-            if (exe != null) {
-                File parent = new File(exe).getParentFile();
-                if (parent != null && parent.isDirectory()) {
-                    dir = parent;
-                }
-            }
-        } catch (Throwable ignore) {
-            // 落到 user.dir 兜底
+        File dir = exeDir();
+        if (dir == null) dir = new File(System.getProperty("user.dir", "."));
+        log("preload 目录=" + dir.getAbsolutePath());
+
+        File[] all = dir.listFiles((d, n) -> n.toLowerCase().endsWith(".dll"));
+        if (all != null) {
+            for (File f : all) log("  目录内 dll: " + f.getName() + " (" + f.length() + " 字节)");
         }
-        if (dir == null) {
-            dir = new File(System.getProperty("user.dir", "."));
-        }
-        // 按依赖顺序排列；同目录依赖 Windows 加载器也会自动解析，
-        // 这里显式逐个加载是为了让 AWT 后续所有 loadLibrary 调用都命中“已加载”。
+
         String[] dlls = {
                 "jvm.dll",
                 "java.dll",
@@ -66,21 +158,23 @@ public class Main {
         };
         for (String name : dlls) {
             File f = new File(dir, name);
-            if (f.isFile()) {
-                try {
-                    System.load(f.getAbsolutePath());
-                } catch (Throwable ignore) {
-                    // 已加载或由其依赖自动加载，忽略即可
-                }
+            if (!f.isFile()) {
+                log("  [缺失] " + name + " -> " + f.getAbsolutePath());
+                continue;
+            }
+            log("  加载中 " + name + " ...");
+            try {
+                System.load(f.getAbsolutePath());
+                log("  [成功] " + name);
+            } catch (Throwable t) {
+                log("  [失败] " + name + " : " + t);
             }
         }
     }
 
     /**
-     * GraalVM native-image 下 AWT/Swing 的字体子系统初始化要求 {@code java.home}
-     * 指向一个<b>存在的目录</b>（Linux 走系统 fontconfig、Windows 走 GDI，
-     * 并不需要完整 JRE）。普通 JVM 运行时 {@code java.home} 始终有效，此方法直接返回，
-     * 行为与原来完全一致；仅在原生镜像且该属性缺失/失效时，把它指向可执行文件所在目录。
+     * GraalVM native-image 下 AWT/Swing 字体子系统要求 java.home 指向存在的目录。
+     * 普通 JVM 直接返回；原生镜像缺失时指向 exe 目录并建立空 lib 目录。
      */
     private static void ensureJavaHome() {
         try {
@@ -99,8 +193,6 @@ public class Main {
                 home = System.getProperty("user.dir", ".");
             }
             System.setProperty("java.home", home);
-            // AWT 字体子系统在 Linux 上要求 java.home/lib 目录存在（内容可空，字体由
-            // 系统 fontconfig 提供）；只读环境下创建失败可忽略，Windows 走 GDI 不受影响。
             try {
                 Files.createDirectories(Path.of(home, "lib"));
             } catch (Throwable ignore) {
