@@ -1,0 +1,80 @@
+name: 构建 Windows 原生版 (GraalVM native-image)
+
+# 触发方式：
+#  1) 推送到 main/master（改动源码/依赖/脚本时）自动构建；
+#  2) GitHub 网页 Actions 页手动点 “Run workflow”。
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'mc-pixel-art-converter/src/**'
+      - 'mc-pixel-art-converter/lib/**'
+      - 'mc-pixel-art-converter/scripts/**'
+      - '.github/workflows/**'
+
+jobs:
+  windows-native:
+    name: Windows x64 原生 exe
+    runs-on: windows-latest   # 微软免费提供的真实 Windows 虚拟机，已预装 Visual Studio 2022 (MSVC) + Windows SDK
+
+    defaults:
+      run:
+        working-directory: mc-pixel-art-converter   # 内层 content root（外层是 IDEA 工程根）
+        shell: bash
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 GraalVM CE JDK 25（含 native-image）
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          version: '25.0.2'
+          components: 'native-image'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          set-java-default: 'true'
+
+      - name: 确认工具链
+        run: |
+          java -version
+          native-image --version
+
+      - name: 编译主程序与资源
+        run: |
+          mkdir -p target/classes
+          find src/main/java -name '*.java' ! -path '*META-INF*' > target/srcs.txt
+          javac -encoding UTF-8 --release 17 -d target/classes -cp "lib/*" @target/srcs.txt
+          cp -r src/main/resources/. target/classes/
+          javac -encoding UTF-8 -cp "target/classes;lib/*" -d target/classes scripts/native/NativeTrace.java
+
+      - name: 在 Windows 上采集原生镜像元数据（文件对话框 / ImageIO / ShellFolder 等）
+        # NativeTrace 会自动弹出并关闭文件选择器、颜色选择器并走完生成/导出，无需人工操作。
+        run: |
+          java -agentlib:native-image-agent=config-output-dir=target/classes/META-INF/native-image/mcart/ci \
+            -cp "target/classes;lib/flatlaf-3.7.1.jar" NativeTrace
+
+      - name: native-image 编译为 mcart.exe
+        run: |
+          mkdir -p target/dist
+          native-image --no-fallback \
+            -cp "target/classes;lib/flatlaf-3.7.1.jar" \
+            -H:Class=com.axolotl.mcart.Main \
+            -o target/dist/mcart.exe \
+            -H:+ReportExceptionStackTraces \
+            -H:+AddAllCharsets \
+            --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
+
+      - name: 打包为 zip（exe + 同目录 dll）
+        shell: pwsh
+        working-directory: ${{ github.workspace }}/mc-pixel-art-converter
+        run: Compress-Archive -Path target/dist/* -DestinationPath mcart-windows-x64.zip -Force
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcart-windows-x64
+          path: mc-pixel-art-converter/mcart-windows-x64.zip
+          retention-days: 30

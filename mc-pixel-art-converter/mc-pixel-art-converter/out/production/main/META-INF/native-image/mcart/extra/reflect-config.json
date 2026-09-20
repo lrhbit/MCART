@@ -1,0 +1,338 @@
+[
+ {
+  "name": "com.axolotl.mcart.Main",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.BlueNoise",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.ColorConverter",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.ColorMatcher$PaletteEntry",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.ColorMatcher",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.DitherMethod",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.DitheringEngine$1"
+ },
+ {
+  "name": "com.axolotl.mcart.core.DitheringEngine",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.ImagePreprocessor",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.Model3DRenderer$Camera",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.Model3DRenderer$Face",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.Model3DRenderer",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.PixelArtGenerator$Result",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.PixelArtGenerator",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.PreprocessSettings$BackgroundMode",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.PreprocessSettings",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.core.TexturePreviewRenderer",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.export.LitematicExporter",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.export.NBTWriter",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.export.SchemExporter",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.export.SchematicExporter",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.model.BlockColor$Category",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.model.BlockColor",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.model.BlockPalette",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.model.MapMode",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$1"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$BlockCard$1"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$BlockCard",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$BlockLibraryDialog$1"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$BlockLibraryDialog",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$ImageCanvas",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$ViewerPane$1"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$ViewerPane$2"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$ViewerPane$3"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame$ViewerPane",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.ui.MainFrame",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.ui.Model3DCanvas$1"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.Model3DCanvas",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.ui.PreprocessDialog$1"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.PreprocessDialog$2"
+ },
+ {
+  "name": "com.axolotl.mcart.ui.PreprocessDialog",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.ui.WrapLayout",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.util.BlockNames",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ },
+ {
+  "name": "com.axolotl.mcart.util.TextureManager",
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true,
+  "allPublicConstructors": true,
+  "allPublicMethods": true,
+  "allPublicFields": true
+ }
+]
