@@ -4,14 +4,18 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'src/**'
-      - 'lib/**'
-      - 'scripts/**'
+      - 'mc-pixel-art-converter/src/**'
+      - 'mc-pixel-art-converter/lib/**'
+      - 'mc-pixel-art-converter/scripts/**'
       - '.github/workflows/**'
+
 jobs:
   windows-native:
     name: Windows x64 原生 exe
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: mc-pixel-art-converter
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -72,5 +76,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mcart-windows-x64
-          path: mcart-windows-x64.zip
+          path: mc-pixel-art-converter/mcart-windows-x64.zip
           retention-days: 30
