@@ -1,5 +1,4 @@
 name: 构建 Windows 原生版 (GraalVM native-image)
-
 on:
   workflow_dispatch:
   push:
@@ -19,7 +18,6 @@ jobs:
       run:
         working-directory: mc-pixel-art-converter/mc-pixel-art-converter
         shell: pwsh
-
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -56,47 +54,39 @@ jobs:
           Get-ChildItem src/main/java -Recurse -Filter *.java |
             Where-Object FullName -NotMatch 'META-INF' |
             Select-Object -ExpandProperty FullName > target/srcs.txt
+          # 编译：cp包含全部lib下jar
           javac -encoding UTF-8 --release 17 -d target/classes -cp "lib/*" @target/srcs.txt
           Copy-Item -Recurse src/main/resources/* target/classes/ -Force
-          javac -encoding UTF-8 -cp "target/classes;lib/*" -d target/classes scripts/native/NativeTrace.java
 
-      - name: 在 Windows 上采集原生镜像元数据（文件对话框/ImageIO/ShellFolder）
+      - name: 在 Windows 上采集原生镜像元数据（agent采集反射/资源）
         run: |
-          java -agentlib:native-image-agent=config-output-dir=target/classes/META-INF/native-image/mcart/ci `
-            -cp "target/classes;lib/flatlaf-3.7.1.jar" NativeTrace
+          New-Item -ItemType Directory -Force target/graal-config | Out-Null
+          # 直接运行主类Main，打开完整UI采集，不要用NativeTrace
+          java -agentlib:native-image-agent=config-output-dir=target/graal-config,config-merge-dir=target/graal-config `
+            -cp "target/classes;lib/*" com.axolotl.mcart.Main
 
       - name: native-image 编译为 mcart.exe（诊断版：控制台子系统，输出启动日志）
         run: |
           New-Item -ItemType Directory -Force target/dist | Out-Null
           native-image --no-fallback `
             --parallelism=1 --gc=serial -J-Xmx5500m `
-            -cp "target/classes;lib/flatlaf-3.7.1.jar" `
+            --enable-swing `
+            --enable-native-access=ALL-UNNAMED `
+            --install-exit-handlers `
+            -H:ConfigurationFileDirectories=target/graal-config `
             -H:Class=com.axolotl.mcart.Main `
             -o target/dist/mcart `
             -H:+ReportExceptionStackTraces `
             -H:+AddAllCharsets `
+            -H:+IncludeAllLocales `
             -H:IncludeResources=.*fontconfig.* `
             -H:IncludeResources=.*fonts/.* `
-            --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
+            -H:IncludeResources=com/formdev/flatlaf/** `
+            -H:IncludeResources=net/miginfocom/** `
+            # 只把业务代码放到运行时初始化，不要FlatLaf全部延迟初始化
+            --initialize-at-run-time=com.axolotl.mcart.core,com.axolotl.mcart.ui
 
-      - name: 附带 AWT 字体配置（修复 Fontconfig head is null）
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force target/dist/lib | Out-Null
-          $jh = $env:JAVA_HOME
-          Write-Host "JAVA_HOME=$jh"
-          Get-ChildItem (Join-Path $jh 'lib') -Filter 'fontconfig*' -ErrorAction SilentlyContinue | ForEach-Object {
-            Write-Host "复制字体配置: $($_.Name) ($($_.Length) 字节)"
-            Copy-Item $_.FullName (Join-Path 'target/dist/lib' $_.Name) -Force
-          }
-          if (Test-Path (Join-Path $jh 'lib/fonts')) {
-            Copy-Item (Join-Path $jh 'lib/fonts') 'target/dist/lib/fonts' -Recurse -Force
-            Write-Host "已复制 lib/fonts"
-          }
-          Write-Host "=== target/dist/lib 内容 ==="
-          Get-ChildItem target/dist/lib -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Length
-
-      - name: 打包为 zip（exe + 同目录 dll + lib 字体配置）
+      - name: 打包为 zip（仅exe，不再额外拷贝外部fontconfig）
         run: |
           Compress-Archive -Path target/dist/* -DestinationPath mcart-windows-x64.zip -Force
           Write-Host "=== dist 产物清单 ==="
