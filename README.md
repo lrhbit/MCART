@@ -53,7 +53,7 @@ text
 ---
 
 ## 📄 许可证
-Copyright (C) [年份] [你的名字]
+Copyright (C) [2026] [Jackin Lee]
 源可用非商业相同方式共享许可
 
 1. 授权范围
