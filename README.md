@@ -4,7 +4,7 @@ Convert any image into a Minecraft map art 🎨🟩
 
 [![CI](https://github.com/lrhbit/MCART/actions/workflows/main.yml/badge.svg)](https://github.com/lrhbit/MCART/actions/workflows/main.yml)
 
-<img width="1127" height="655" alt="image" src="https://github.com/user-attachments/assets/e7ea15a0-33b2-4304-a93a-ec33bd9ae45c" />
+<img width="1127" height="655" alt="image" align="centre" src="https://github.com/user-attachments/assets/e7ea15a0-33b2-4304-a93a-ec33bd9ae45c" />
 
 MCART is a lightweight pixel art conversion tool: open a regular image, configure some parameters, and you can output a pixel art composed of the Minecraft block palette, which can be directly used for building in survival mode.
 
