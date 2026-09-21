@@ -59,7 +59,7 @@ python main.py input.png --width 64 --output output.png
 
 ---
 
-##🧠 工作原理
+## 🧠 工作原理
 读取与缩放 —— 将原图缩放到目标像素尺寸（每个像素 = 一个方块）。
 
 构建调色板 —— 加载 Minecraft 可用方块的颜色表。
@@ -70,7 +70,7 @@ python main.py input.png --width 64 --output output.png
 
 ---
 
-##🤝 贡献
+## 🤝 贡献
 欢迎提交 Issue 和 Pull Request！
 
 Fork 本仓库
@@ -85,7 +85,7 @@ Fork 本仓库
 
 ---
 
-##📄 许可证
+## 📄 许可证
 本项目暂未声明许可证。如需开源使用，建议补充 LICENSE 文件（如 MIT）。
 
 ---
@@ -93,4 +93,3 @@ Fork 本仓库
 ##⭐ 致谢
 如果这个项目对你有帮助，欢迎点个 Star ⭐
 
----
