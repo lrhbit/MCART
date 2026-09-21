@@ -1,4 +1,4 @@
-name: 构建 Windows 原生版 (GraalVM native-image)
+name: Build Windows Native (GraalVM)
 
 on:
   workflow_dispatch:
