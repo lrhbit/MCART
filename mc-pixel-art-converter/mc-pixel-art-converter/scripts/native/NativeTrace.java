@@ -8,6 +8,8 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.lang.reflect.Field;
@@ -117,6 +119,17 @@ public class NativeTrace {
         Object canvas = getField(frame, "model3DCanvas");
         canvas.getClass().getMethod("resetView").invoke(canvas);
 
+        // 深度交互：真实展开每个下拉弹窗、编辑每个数字框，
+        // 采集首次交互才懒加载的 FlatComboPopup/弹窗 JList 渲染器、NumberFormatter 反射、键盘/剪贴板 Action。
+        for (String fname : new String[]{"modeCombo","ditherCombo","formatCombo","previewModeCombo","supportCombo"}) {
+            Object c = getField(frame, fname);
+            if (c instanceof JComboBox cb) exerciseCombo(cb);
+        }
+        for (String fname : new String[]{"mapWidthSpinner","mapHeightSpinner"}) {
+            Object sp = getField(frame, fname);
+            if (sp instanceof JSpinner js) exerciseSpinner(js);
+        }
+
         frame.revalidate();
         BufferedImage shot = new BufferedImage(1280, 820, BufferedImage.TYPE_INT_ARGB);
         Graphics2D pg = shot.createGraphics();
@@ -179,6 +192,91 @@ public class NativeTrace {
             new JFormattedTextField(), new JScrollBar(), new JCheckBoxMenuItem(), new JRadioButtonMenuItem()
         };
         for (JComponent c : cs) c.getUI();
+    }
+
+    /** 真实展开下拉弹窗，强制创建 FlatComboPopup/BasicComboPopup、弹窗内 JList、滚动区与各类监听器。 */
+    @SuppressWarnings({"rawtypes","unchecked"})
+    private static void exerciseCombo(JComboBox combo) {
+        try {
+            int n = combo.getItemCount();
+            for (int i = 0; i < n; i++) combo.setSelectedIndex(i);
+            if (n > 0) combo.setSelectedIndex(0);
+            combo.setPopupVisible(true);
+            Thread.sleep(150);
+            if (n > 1) { combo.setSelectedIndex(1); Thread.sleep(120); }
+            // 弹窗打开状态下的键盘下移选择，覆盖弹窗 KeyHandler/Action
+            combo.dispatchEvent(new KeyEvent(combo, KeyEvent.KEY_PRESSED,
+                    System.currentTimeMillis(), 0, KeyEvent.VK_DOWN, KeyEvent.CHAR_UNDEFINED));
+            Thread.sleep(120);
+            combo.setPopupVisible(false);
+            Thread.sleep(60);
+        } catch (Throwable t) {
+            System.out.println("exerciseCombo 跳过: " + t);
+        }
+    }
+
+    /** 真实编辑数字框：聚焦、键盘键入、setText+commitEdit、Enter 提交、上下箭头、复制/剪切/粘贴。 */
+    private static void exerciseSpinner(JSpinner spinner) {
+        try {
+            JComponent editor = spinner.getEditor();
+            JFormattedTextField ftf = (editor instanceof JSpinner.DefaultEditor de) ? de.getTextField() : null;
+            if (ftf != null) {
+                ftf.requestFocusInWindow();
+                Thread.sleep(50);
+                // 真实键盘键入一个数字（覆盖 KeyMap insert-content + InternationalFormatter 的 DocumentFilter）
+                ftf.setText("");
+                ftf.dispatchEvent(new KeyEvent(ftf, KeyEvent.KEY_TYPED,
+                        System.currentTimeMillis(), 0, KeyEvent.VK_UNDEFINED, '4'));
+                quietCommit(ftf);
+                Thread.sleep(40);
+                // setText + commitEdit（覆盖 NumberFormatter/InternationalFormatter stringToValue 反射）
+                for (String v : new String[]{"3", "7"}) {
+                    ftf.setText(v);
+                    quietCommit(ftf);
+                    Thread.sleep(30);
+                }
+                // Enter 提交、全选/复制/剪切/粘贴 Action（覆盖 ActionMap 与剪贴板 DataFlavor）
+                ActionMap am = ftf.getActionMap();
+                if (am != null) {
+                    Action accept = am.get("notify-field-accept");
+                    if (accept != null) accept.actionPerformed(new ActionEvent(ftf, ActionEvent.ACTION_PERFORMED, ""));
+                    for (String k : new String[]{"select-all","copy-to-clipboard","cut-to-clipboard","paste-from-clipboard"}) {
+                        Action a = am.get(k);
+                        if (a != null) {
+                            ftf.selectAll();
+                            a.actionPerformed(new ActionEvent(ftf, ActionEvent.ACTION_PERFORMED, k));
+                            Thread.sleep(20);
+                        }
+                    }
+                }
+                quietCommit(spinner);
+            }
+            // 上下箭头按钮（BasicSpinnerUI 的 BasicArrowButton）
+            java.util.List<JButton> btns = new java.util.ArrayList<>();
+            collectButtons(spinner, btns);
+            for (JButton b : btns) { b.doClick(); Thread.sleep(30); }
+            Object nx = spinner.getNextValue();
+            if (nx != null) { spinner.setValue(nx); Thread.sleep(20); }
+            Object pv = spinner.getPreviousValue();
+            if (pv != null) { spinner.setValue(pv); Thread.sleep(20); }
+            spinner.setValue(2);
+        } catch (Throwable t) {
+            System.out.println("exerciseSpinner 跳过: " + t);
+        }
+    }
+
+    private static void quietCommit(JFormattedTextField ftf) {
+        try { ftf.commitEdit(); } catch (Throwable ignore) {}
+    }
+    private static void quietCommit(JSpinner s) {
+        try { s.commitEdit(); } catch (Throwable ignore) {}
+    }
+
+    private static void collectButtons(Container c, java.util.List<JButton> out) {
+        for (Component ch : c.getComponents()) {
+            if (ch instanceof JButton b) out.add(b);
+            if (ch instanceof Container ct) collectButtons(ct, out);
+        }
     }
 
     private static Object getField(Object o, String n) throws Exception {
