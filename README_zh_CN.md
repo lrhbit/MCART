@@ -4,7 +4,10 @@
 
 [![CI](https://github.com/lrhbit/MCART/actions/workflows/main.yml/badge.svg)](https://github.com/lrhbit/MCART/actions/workflows/main.yml)
 
-MCART 是一个轻量的像素画转换工具：打开一张普通图片，配置一些参数，即可输出一张由 Minecraft 方块调色板拼成的像素画，可直接用于生存模式搭建。
+<img width="1127" height="700" alt="屏幕截图 2026-09-21 224836" src="https://github.com/user-attachments/assets/479cdc10-40e5-4eaa-8d58-f9af5310319a" />
+
+
+MCART是一个基于Java的轻量工具程序，可以将图片转化为Minecraft中的地图画：打开一张普通图片，配置一些参数，即可输出一张由 Minecraft 方块调色板拼成的像素画，可直接用于生存模式搭建。
 
 ---
 
@@ -15,18 +18,6 @@ MCART 是一个轻量的像素画转换工具：打开一张普通图片，配�
 - **多种输出格式** —— litematic Schematic 等格式导出，下载后即可在游戏中查看，无需转换。
 - **无需网络** —— 纯离线处理，输入图片即可得到结果。
 - **CI 自动化** —— 通过 GitHub Actions 自动构建与校验。
-
----
-
-## 📁 项目结构
-MCART/
-├── .github/
-│ └── workflows/
-│ └── main.yml # GitHub Actions 工作流
-├── mc-pixel-art-converter/ # 核心转换器
-└── README.md
-
-text
 
 ---
 
@@ -74,6 +65,5 @@ Copyright (C) [2026] [Jackin Lee]
 
 ---
 
-##⭐ 致谢
-如果这个项目对你有帮助，麻烦点个 Star ⭐，非常感激
+**如果这个项目对你有帮助，麻烦点个 Star ⭐，非常感激**
 
