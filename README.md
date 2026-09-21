@@ -21,18 +21,6 @@ open a regular image, configure some parameters, and you can output a pixel art 
 
 ---
 
-## 📁 Project Structure
-MCART/
-├── .github/
-│ └── workflows/
-│ └── main.yml # GitHub Actions workflow
-├─ mc-pixel-art-converter/ # Core converter
-└── README.md
-
-text
-
----
-
 ## 🚀 Quick Start
 
 ### Environmental requirements
