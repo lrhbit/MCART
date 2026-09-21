@@ -65,7 +65,7 @@ jobs:
       - name: native-image 编译为 mcart.exe（控制台子系统，便于自检与排错）
         run: |
           New-Item -ItemType Directory -Force target/dist | Out-Null
-          native-image --no-fallback --parallelism=1 --gc=serial -J-Xmx5500m -cp "target/classes;lib/flatlaf-3.7.1.jar" -H:Class=com.axolotl.mcart.Main -o target/dist/mcart -H:+ReportExceptionStackTraces -H:+AddAllCharsets --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
+          native-image --no-fallback --parallelism=1 --gc=serial -J-Xmx5500m -cp "target/classes;lib/flatlaf-3.7.1.jar" -H:Class=com.axolotl.mcart.Main -o target/dist/mcart -H:+ReportExceptionStackTraces -H:+AddAllCharsets -Djava.awt.headless=false --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
 
       - name: 准备随包字体配置（文本版 fontconfig.properties，勿放 .bfc）
         shell: pwsh
@@ -79,11 +79,13 @@ jobs:
           $srcProps = Join-Path $jh 'lib\fontconfig.properties.src'
           if (-not (Test-Path $srcProps)) { throw "JDK 缺少文本字体配置模板: $srcProps" }
           Copy-Item $srcProps 'target/dist/lib/fontconfig.properties' -Force
+          # exe 同目录也放一份（覆盖 Main 的 fontconfig.properties 候选与相对 CWD 启动场景）
+          Copy-Item $srcProps 'target/dist/fontconfig.properties' -Force
           # flavormap：AWT 数据传输/复制粘贴所需，缺失不致命，能带上就带上
           $fm = Join-Path $jh 'lib\flavormap.properties'
           if (Test-Path $fm) { Copy-Item $fm 'target/dist/lib/flavormap.properties' -Force; Write-Host '已随包 flavormap.properties' } else { Write-Host 'JDK 中未找到 flavormap.properties，跳过' }
-          #双保险：确保没有任何 .bfc 被放进 lib（setupFontConfig 会优先选中它并导致 NPE）
-          Get-ChildItem 'target/dist/lib' -Filter '*.bfc' -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item $_.FullName -Force; Write-Host "移除二进制字体配置: $($_.Name)" }
+          #双保险：确保 dist（含 lib 与 exe 同目录）没有任何 .bfc（setupFontConfig 会优先选中它并导致 NPE）
+          Get-ChildItem 'target/dist' -Recurse -Filter '*.bfc' -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item $_.FullName -Force; Write-Host "移除二进制字体配置: $($_.FullName)" }
           #内容自检：文本字体配置必须包含 version 与 sequence 定义
           $text = Get-Content 'target/dist/lib/fontconfig.properties' -Raw -Encoding UTF8
           Write-Host ("fontconfig.properties 字节数: " + (Get-Item 'target/dist/lib/fontconfig.properties').Length)
@@ -97,26 +99,24 @@ jobs:
         run: |
           Push-Location target/dist
           try {
-            Write-Host '=== dist 目录内容（确认 exe 与 dll 齐全）==='
-            Get-ChildItem | Select-Object Name,Length
+            Write-Host '=== dist 目录内容（确认 exe/dll/字体文件齐全）==='
+            Get-ChildItem -Recurse | Select-Object FullName,Length
             $dir = (Get-Location).Path
             $exe = Join-Path $dir 'mcart.exe'
             $logPath = Join-Path $dir 'launch-log.txt'
-            $outPath = Join-Path $dir 'smoke-out.txt'
-            $errPath = Join-Path $dir 'smoke-err.txt'
-            foreach ($f in @($logPath,$outPath,$errPath)) { if (Test-Path $f) { Remove-Item $f -Force } }
-            # -NoNewWindow + 重定向：在 runner 同一会话内运行，避免 console exe 被新弹终端拖到秒退
-            $p = Start-Process -FilePath $exe -WorkingDirectory $dir -PassThru -NoNewWindow -RedirectStandardOutput $outPath -RedirectStandardError $errPath
-            Start-Sleep -Seconds 3
+            if (Test-Path $logPath) { Remove-Item $logPath -Force }
+            # 最接近“双击”：工作目录=exe 所在目录，不做输出重定向（避免管道缓冲吞掉早期日志）
+            $p = Start-Process -FilePath $exe -WorkingDirectory $dir -PassThru
+            Start-Sleep -Seconds 4
             Write-Host ("启动后: Id={0} HasExited={1}" -f $p.Id,$p.HasExited)
             if ($p.HasExited) { Write-Host ("ExitCode={0}" -f $p.ExitCode) }
             $ok = $false
-            for ($i=0; $i -lt 30; $i++) {
+            for ($i=0; $i -lt 28; $i++) {
               Start-Sleep -Seconds 2
               if (Test-Path $logPath) {
                 $t = Get-Content $logPath -Raw -Encoding UTF8
                 if ($t -match '主窗口已显示') { $ok = $true; break }
-                if ($t -match 'Fontconfig|no ComponentUI|创建窗口失败|启动致命错误') { break }
+                if ($t -match 'Fontconfig|no ComponentUI|创建窗口失败|启动致命错误|java.home property not set') { break }
               }
               if ($p.HasExited) {
                 Start-Sleep -Seconds 1
@@ -128,13 +128,13 @@ jobs:
             Get-Process -Name mcart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
             if (-not $p.HasExited) { try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {} }
             Start-Sleep -Seconds 1
-            Write-Host '===== [stdout] ====='
-            if (Test-Path $outPath) { Get-Content $outPath -Raw -Encoding UTF8 } else { Write-Host '(无)' }
-            Write-Host '===== [stderr] ====='
-            if (Test-Path $errPath) { Get-Content $errPath -Raw -Encoding UTF8 } else { Write-Host '(无)' }
-            Write-Host '===== [launch-log.txt] ====='
-            if (Test-Path $logPath) { Get-Content $logPath -Raw -Encoding UTF8 } else { Write-Host '(未生成 launch-log.txt)' }
-            if (-not $ok) { throw '冒烟自测失败：exe 未能成功初始化字体并创建主窗口，详见上方 stdout/stderr/launch-log' }
+            Write-Host '===== dist/launch-log.txt ====='
+            if (Test-Path $logPath) { Get-Content $logPath -Raw -Encoding UTF8 } else { Write-Host '(dist 下未生成 launch-log.txt)' }
+            Write-Host '===== 全工作区搜索 launch-log.txt ====='
+            $ws = if ($env:GITHUB_WORKSPACE) { $env:GITHUB_WORKSPACE } else { 'D:\a\a-a-a\a-a-a' }
+            $found = Get-ChildItem -Path $ws -Recurse -Filter 'launch-log.txt' -ErrorAction SilentlyContinue
+            if ($found) { foreach ($f in $found) { Write-Host "---- $($f.FullName) ----"; Get-Content $f.FullName -Raw -Encoding UTF8 } } else { Write-Host '(工作区内未找到任何 launch-log.txt)' }
+            if (-not $ok) { throw '冒烟自测失败：exe 未能成功初始化字体并创建主窗口，详见上方 launch-log' }
             Write-Host '冒烟自测通过：字体初始化正常，主窗口成功创建。'
           } finally {
             Pop-Location
