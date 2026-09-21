@@ -1,19 +1,19 @@
 # MCART
 
-> 把任意图片转换成 Minecraft 像素画（方块艺术）🎨🟩
+> 把任意图片转换成 Minecraft 地图画🎨🟩
 
 [![CI](https://github.com/lrhbit/MCART/actions/workflows/main.yml/badge.svg)](https://github.com/lrhbit/MCART/actions/workflows/main.yml)
 
-MCART 是一个轻量的像素画转换工具：输入一张普通图片，输出一张由 Minecraft 方块调色板拼成的像素画，可直接用于建筑规划、地图画（Map Art）制作或生存模式搭建。
+MCART 是一个轻量的像素画转换工具：打开一张普通图片，配置一些参数，即可输出一张由 Minecraft 方块调色板拼成的像素画，可直接用于生存模式搭建。
 
 ---
 
 ## ✨ 特性
 
-- **方块调色板匹配** —— 将图片颜色映射到最接近的 Minecraft 方块颜色，而不是简单的 256 色量化。
+- **方块调色板匹配** —— 将图片颜色映射到最接近的 Minecraft 的方块颜色。
 - **可调分辨率** —— 自由指定输出宽度/高度（像素画尺寸 = 方块数量）。
-- **多种输出格式** —— 导出预览图（PNG），方便在动手搭建前预览效果。
-- **无需 Minecraft 客户端** —— 纯离线处理，输入图片即可得到结果。
+- **多种输出格式** —— litematic Schematic 等格式导出，下载后即可在游戏中查看，无需转换。
+- **无需网络** —— 纯离线处理，输入图片即可得到结果。
 - **CI 自动化** —— 通过 GitHub Actions 自动构建与校验。
 
 ---
@@ -34,29 +34,6 @@ text
 
 ### 环境要求
 
-- Python 3.8+
-- 依赖见 `mc-pixel-art-converter/requirements.txt`（如使用其他语言实现，请以实际为准）
-
-### 安装
-
-```bash
-git clone https://github.com/lrhbit/MCART.git
-cd MCART
-
-# 安装依赖（如有 requirements.txt）
-pip install -r mc-pixel-art-converter/requirements.txt
-使用
-bash
-cd mc-pixel-art-converter
-
-# 基本用法：把 input.png 转成 64 格宽的像素画
-python main.py input.png --width 64
-
-# 指定输出路径
-python main.py input.png --width 64 --output output.png
-参数名称与入口文件名请以 mc-pixel-art-converter/ 目录下的实际实现为准。
-```
-
 ---
 
 ## 🧠 工作原理
@@ -71,25 +48,35 @@ python main.py input.png --width 64 --output output.png
 ---
 
 ## 🤝 贡献
-欢迎提交 Issue 和 Pull Request！
-
-Fork 本仓库
-
-创建分支：git checkout -b feature/your-feature
-
-提交改动：git commit -m "Add some feature"
-
-推送分支：git push origin feature/your-feature
-
-发起 Pull Request
+欢迎上传 Issue 和 Pull Request！
 
 ---
 
 ## 📄 许可证
-本项目暂未声明许可证。如需开源使用，建议补充 LICENSE 文件（如 MIT）。
+Copyright (C) [年份] [你的名字]
+源可用非商业相同方式共享许可
+
+1. 授权范围
+允许任何人免费复制、查看、学习、修改本软件源代码，但仅限非商业用途。
+
+2. 衍生作品规则（Copyleft）
+如果你修改、基于本项目开发衍生作品，并对外分发（发布二进制程序/源码）：
+- 衍生作品必须完整公开源代码；
+- 衍生作品必须使用完全相同的本协议；
+- 必须显著标注原项目版权信息。
+
+3. 禁止商业用途
+未经著作权人事先书面许可，严禁将本软件、衍生作品用于任何商业目的，包括但不限于售卖、付费托管、广告盈利、打包进付费产品、商业服务。
+公益自愿捐赠不属于商业用途。
+
+4. 版权声明
+分发时，不得删除、遮挡本版权与许可声明。修改的文件需要标注变更记录。
+
+5. 免责声明
+本软件按原样提供，不提供任何担保。作者不对使用本软件产生的任何损失承担责任。
 
 ---
 
 ##⭐ 致谢
-如果这个项目对你有帮助，欢迎点个 Star ⭐
+如果这个项目对你有帮助，麻烦点个 Star ⭐，非常感激
 
