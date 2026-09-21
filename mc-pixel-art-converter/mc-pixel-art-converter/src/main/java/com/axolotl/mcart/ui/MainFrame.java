@@ -12,6 +12,7 @@ import com.axolotl.mcart.model.BlockColor;
 import com.axolotl.mcart.model.BlockPalette;
 import com.axolotl.mcart.model.MapMode;
 import com.axolotl.mcart.util.BlockNames;
+import com.axolotl.mcart.util.SvgMiniRenderer;
 import com.axolotl.mcart.util.TextureManager;
 
 import javax.swing.*;
