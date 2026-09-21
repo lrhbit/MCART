@@ -4,6 +4,9 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.axolotl.mcart.ui.MainFrame;
 import javax.swing.*;
 import java.io.File;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -32,6 +35,12 @@ public class Main {
 
     public static void main(String[] args) {
         initLog();
+        for (String a : args) {
+            if ("--selftest".equals(a)) {
+                runSelfTest();
+                return;
+            }
+        }
         log("======== MCart 启动开始 ========");
         try {
             log("os=" + System.getProperty("os.name") + " " + System.getProperty("os.arch")
@@ -78,6 +87,106 @@ public class Main {
             }
             System.exit(1);
         }
+    }
+
+    /**
+     * 隐藏的原生镜像交互自检（CI 用 mcart.exe --selftest 调用，用户双击不带此参数）。
+     * 在真实原生 exe 内展开每一个下拉框、编辑每一个数字框并断言结果，
+     * 用于在交付前自动发现 native-image 漏收录的弹窗/格式化器反射元数据。
+     * 全部通过退出码 0，任一失败退出码 1，并把结论写入 launch-log.txt。
+     */
+    private static void runSelfTest() {
+        log("======== MCart 交互自检开始 ========");
+        int failures = 0, comboCount = 0, spinnerCount = 0;
+        try {
+            ensureJavaHome();
+            boolean installed = installLaf();
+            log("selftest FlatLaf installed=" + installed);
+
+            MainFrame frame = new MainFrame();
+            edt(() -> { frame.setSize(1280, 820); frame.setVisible(true); });
+            Thread.sleep(900);
+
+            List<Field> fields = new ArrayList<>();
+            for (Field f : MainFrame.class.getDeclaredFields()) fields.add(f);
+
+            for (Field f : fields) {
+                Class<?> t = f.getType();
+                if (JComboBox.class.isAssignableFrom(t)) {
+                    comboCount++;
+                    String name = f.getName();
+                    try {
+                        f.setAccessible(true);
+                        JComboBox<?> combo = (JComboBox<?>) f.get(frame);
+                        if (combo == null) throw new AssertionError("字段为 null");
+                        final boolean[] shown = {false};
+                        edt(() -> combo.setPopupVisible(true));
+                        Thread.sleep(350);
+                        edt(() -> shown[0] = combo.isPopupVisible());
+                        if (!shown[0]) throw new AssertionError("setPopupVisible(true) 后弹窗未显示");
+                        edt(() -> combo.setPopupVisible(false));
+                        Thread.sleep(150);
+                        log("selftest 下拉[" + name + "] 展开/收起 OK（" + combo.getItemCount() + " 项）");
+                    } catch (Throwable ex) {
+                        failures++;
+                        log("selftest 下拉[" + name + "] 失败: " + ex);
+                        if (logWriter != null) ex.printStackTrace(logWriter);
+                    }
+                } else if (JSpinner.class.isAssignableFrom(t)) {
+                    spinnerCount++;
+                    String name = f.getName();
+                    try {
+                        f.setAccessible(true);
+                        JSpinner spinner = (JSpinner) f.get(frame);
+                        if (spinner == null) throw new AssertionError("字段为 null");
+                        if (!(spinner.getEditor() instanceof JSpinner.DefaultEditor))
+                            throw new AssertionError("编辑器不是 DefaultEditor");
+                        JFormattedTextField ftf = ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField();
+                        edt(() -> {
+                            ftf.setText("5");
+                            try { ftf.commitEdit(); }
+                            catch (Exception e) { throw new RuntimeException(e); }
+                        });
+                        Thread.sleep(150);
+                        final int[] val = {0};
+                        edt(() -> val[0] = ((Number) spinner.getValue()).intValue());
+                        if (val[0] != 5) throw new AssertionError("提交文本后值=" + val[0] + "，期望 5");
+                        final Object[] next = {null};
+                        edt(() -> next[0] = spinner.getNextValue());
+                        if (next[0] != null) { edt(() -> spinner.setValue(next[0])); Thread.sleep(120); }
+                        edt(() -> spinner.setValue(2));
+                        log("selftest 数字框[" + name + "] 文本改值/箭头 OK");
+                    } catch (Throwable ex) {
+                        failures++;
+                        log("selftest 数字框[" + name + "] 失败: " + ex);
+                        if (logWriter != null) ex.printStackTrace(logWriter);
+                    }
+                }
+            }
+
+            Thread.sleep(300);
+            edt(frame::dispose);
+            if (failures == 0) {
+                log("交互自检通过：" + comboCount + " 个下拉、" + spinnerCount + " 个数字框全部可交互");
+                closeLog();
+                System.exit(0);
+            } else {
+                log("交互自检失败：" + failures + " 项异常（下拉 " + comboCount + "、数字框 " + spinnerCount + "）");
+                closeLog();
+                System.exit(1);
+            }
+        } catch (Throwable t) {
+            log("交互自检异常: " + t);
+            if (logWriter != null) t.printStackTrace(logWriter);
+            closeLog();
+            System.exit(1);
+        }
+    }
+
+    /** 在 EDT 上同步执行（Swing 组件必须在事件分派线程操作）。 */
+    private static void edt(Runnable r) throws Exception {
+        if (SwingUtilities.isEventDispatchThread()) r.run();
+        else SwingUtilities.invokeAndWait(r);
     }
 
     /** 安装 FlatLaf 并二次确认是否真正生效（FlatLaf.setup 会吞掉字体异常，需主动校验）。 */
