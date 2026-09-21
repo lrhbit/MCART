@@ -129,6 +129,7 @@ public class MainFrame extends JFrame {
 
 
     private void initUI() {
+        try { List<Image> iconList = SvgMiniRenderer.loadMultiSizeIconSet("/Logo/logo.svg");setIconImages(iconList); } catch (Exception ignored) {}
         setLayout(new BorderLayout(0, 0));
         ((JComponent) getContentPane()).setBorder(new EmptyBorder(0, 0, 0, 0));
 
