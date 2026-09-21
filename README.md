@@ -1,79 +1,79 @@
 # MCART
 
-> 把任意图片转换成 Minecraft 地图画🎨🟩
+Convert any image into a Minecraft map art 🎨🟩
 
 [![CI](https://github.com/lrhbit/MCART/actions/workflows/main.yml/badge.svg)](https://github.com/lrhbit/MCART/actions/workflows/main.yml)
 
-MCART 是一个轻量的像素画转换工具：打开一张普通图片，配置一些参数，即可输出一张由 Minecraft 方块调色板拼成的像素画，可直接用于生存模式搭建。
+<img width="1127" height="655" alt="image" src="https://github.com/user-attachments/assets/e7ea15a0-33b2-4304-a93a-ec33bd9ae45c" />
+
+MCART is a lightweight pixel art conversion tool: open a regular image, configure some parameters, and you can output a pixel art composed of the Minecraft block palette, which can be directly used for building in survival mode.
 
 ---
 
-## ✨ 特性
+## ✨ Features
 
-- **方块调色板匹配** —— 将图片颜色映射到最接近的 Minecraft 的方块颜色。
-- **可调分辨率** —— 自由指定输出宽度/高度（像素画尺寸 = 方块数量）。
-- **多种输出格式** —— litematic Schematic 等格式导出，下载后即可在游戏中查看，无需转换。
-- **无需网络** —— 纯离线处理，输入图片即可得到结果。
-- **CI 自动化** —— 通过 GitHub Actions 自动构建与校验。
+- **Block Palette Matching** - Maps the colors of the image to the closest block colors in Minecraft.
+- **Adjustable resolution** —— freely specify the output width/height (pixel art size = number of tiles).
+- **Multiple output formats** —— Export in formats such as litematic Schematic, which can be viewed in-game directly after download without conversion.
+- **No network required** —— Purely offline processing, input an image and get the result.
+- **CI Automation** - Automatically build and verify through GitHub Actions.
 
 ---
 
-## 📁 项目结构
+## 📁 Project Structure
 MCART/
 ├── .github/
 │ └── workflows/
-│ └── main.yml # GitHub Actions 工作流
-├── mc-pixel-art-converter/ # 核心转换器
+│ └── main.yml # GitHub Actions workflow
+├─ mc-pixel-art-converter/ # Core converter
 └── README.md
 
 text
 
 ---
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 环境要求
-
----
-
-## 🧠 工作原理
-读取与缩放 —— 将原图缩放到目标像素尺寸（每个像素 = 一个方块）。
-
-构建调色板 —— 加载 Minecraft 可用方块的颜色表。
-
-颜色匹配 —— 对每个像素，在调色板中寻找色差（如 RGB / Lab 空间距离）最小的方块。
-
-生成输出 —— 合成预览图，并统计每种方块的用量，作为搭建时的材料清单。
+### Environmental requirements
 
 ---
 
-## 🤝 贡献
-欢迎上传 Issue 和 Pull Request！
+## 🧠 Working Principle
+Read and scale - Scale the original image to the target pixel size (each pixel = one square).
+
+Build a color palette - Load the color table of available blocks in Minecraft.
+
+Color matching - For each pixel, find the square with the smallest color difference (such as RGB/Lab spatial distance) in the color palette.
+
+Generate output - Synthesize a preview image and tally the usage of each type of block, serving as a material list for construction.
 
 ---
 
-## 📄 许可证
+## 🤝 Contribution
+Welcome to upload Issues and Pull Requests!
+
+---
+
+## 📄 License
 Copyright (C) [2026] [Jackin Lee]
-源可用非商业相同方式共享许可
+The source is licensed for non-commercial sharing under the same terms
 
-1. 授权范围
-允许所有人复制、查看、学习、修改本软件源代码，但仅限非商业用途。
+1. Scope of authorization
+Everyone is allowed to copy, view, study, and modify the source code of this software, but only for non-commercial purposes.
 
-2. 衍生作品规则（Copyleft）
-如果你修改、基于本项目开发衍生作品，并对外分发（发布二进制程序/源码）：
-- 衍生作品必须完整公开源代码；
-- 衍生作品必须使用和本协议完全相同的协议；
-- 必须标注原项目版权信息。
+2. Derivative works rules (Copyleft)
+If you modify, develop derivative works based on this project, and distribute (publish binary programs/source code) externally:
+- Derivative works must fully disclose the source code;
+- Derivative works must use a license that is identical to this license;
+- The copyright information of the original project must be indicated.
 
-3. 禁止商业用途
-严禁将本软件、衍生作品用于任何商业目的，包括但不限于售卖、付费托管、广告盈利、打包进付费产品、商业服务。
-公益自愿捐赠不属于商业用途。
+3. Prohibition of commercial use
+It is strictly prohibited to use this software and its derivative works for any commercial purposes, including but not limited to selling, paid hosting, advertising for profit, packaging into paid products, and commercial services.
+Voluntary donations for public welfare purposes are not for commercial use.
 
-4. 版权声明
-分发时，不得删除、遮挡本版权与许可声明。修改的文件需要标注变更记录。
+4. Copyright Notice
+When distributing, the copyright and license notices must not be removed or obscured. Modified files need to be marked with a change log.
 
 ---
 
-##⭐ 致谢
-如果这个项目对你有帮助，麻烦点个 Star ⭐，非常感激
-
+**If this project is helpful to you, please give it a star ⭐. I would be very grateful**
