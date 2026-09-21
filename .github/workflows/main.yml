@@ -138,6 +138,35 @@ jobs:
             Pop-Location
           }
 
+      - name: CI 真机交互自检（原生 exe 内展开下拉 + 文本改数字框）
+        shell: pwsh
+        run: |
+          Push-Location target/dist
+          try {
+            $dir = (Get-Location).Path
+            $exe = Join-Path $dir 'mcart.exe'
+            $logPath = Join-Path $dir 'launch-log.txt'
+            if (Test-Path $logPath) { Remove-Item $logPath -Force }
+            # --selftest 会在原生镜像内部真实展开每个下拉、编辑每个数字框，随后自行退出（0=通过）
+            $p = Start-Process -FilePath $exe -ArgumentList '--selftest' -WorkingDirectory $dir -PassThru
+            $exited = $p.WaitForExit(90000)
+            if (-not $exited) {
+              try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+              throw '交互自检超时（90s 未自行退出）'
+            }
+            Start-Sleep -Seconds 1
+            Write-Host '===== selftest launch-log.txt ====='
+            if (Test-Path $logPath) { Get-Content $logPath -Raw -Encoding UTF8 } else { throw '未生成 launch-log.txt' }
+            $code = $p.ExitCode
+            $t = Get-Content $logPath -Raw -Encoding UTF8
+            if ($code -ne 0) { throw "交互自检失败：退出码 $code" }
+            if ($t -notmatch '交互自检通过') { throw '交互自检未出现“交互自检通过”标记' }
+            Write-Host '交互自检通过：所有下拉可展开、所有数字框可通过文本改值。'
+          } finally {
+            Get-Process -Name mcart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Pop-Location
+          }
+
       - name: 打包为 zip（exe + 同目录 dll + lib 字体配置）
         run: |
           Remove-Item target/dist/launch-log.txt -ErrorAction SilentlyContinue
