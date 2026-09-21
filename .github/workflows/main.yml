@@ -97,32 +97,44 @@ jobs:
         run: |
           Push-Location target/dist
           try {
-            $logPath = Join-Path (Get-Location) 'launch-log.txt'
-            if (Test-Path $logPath) { Remove-Item $logPath -Force }
-            $p = Start-Process -FilePath '.\mcart.exe' -WorkingDirectory (Get-Location).Path -PassThru
+            Write-Host '=== dist 目录内容（确认 exe 与 dll 齐全）==='
+            Get-ChildItem | Select-Object Name,Length
+            $dir = (Get-Location).Path
+            $exe = Join-Path $dir 'mcart.exe'
+            $logPath = Join-Path $dir 'launch-log.txt'
+            $outPath = Join-Path $dir 'smoke-out.txt'
+            $errPath = Join-Path $dir 'smoke-err.txt'
+            foreach ($f in @($logPath,$outPath,$errPath)) { if (Test-Path $f) { Remove-Item $f -Force } }
+            # -NoNewWindow + 重定向：在 runner 同一会话内运行，避免 console exe 被新弹终端拖到秒退
+            $p = Start-Process -FilePath $exe -WorkingDirectory $dir -PassThru -NoNewWindow -RedirectStandardOutput $outPath -RedirectStandardError $errPath
+            Start-Sleep -Seconds 3
+            Write-Host ("启动后: Id={0} HasExited={1}" -f $p.Id,$p.HasExited)
+            if ($p.HasExited) { Write-Host ("ExitCode={0}" -f $p.ExitCode) }
             $ok = $false
             for ($i=0; $i -lt 30; $i++) {
               Start-Sleep -Seconds 2
               if (Test-Path $logPath) {
                 $t = Get-Content $logPath -Raw -Encoding UTF8
                 if ($t -match '主窗口已显示') { $ok = $true; break }
-                if ($t -match 'Fontconfig|no ComponentUI|创建窗口失败|启动致命错误') { Write-Host '检测到启动失败关键字'; break }
+                if ($t -match 'Fontconfig|no ComponentUI|创建窗口失败|启动致命错误') { break }
               }
               if ($p.HasExited) {
                 Start-Sleep -Seconds 1
-                if (Test-Path $logPath) {
-                  $t = Get-Content $logPath -Raw -Encoding UTF8
-                  if ($t -match '主窗口已显示') { $ok = $true }
-                }
+                if (Test-Path $logPath) { $t = Get-Content $logPath -Raw -Encoding UTF8; if ($t -match '主窗口已显示') { $ok = $true } }
                 break
               }
             }
-            Write-Host '================= launch-log.txt ================='
-            if (Test-Path $logPath) { Get-Content $logPath -Raw -Encoding UTF8 } else { Write-Host '(未生成 launch-log.txt)' }
-            Write-Host '=================================================='
+            Write-Host ("冒烟判定: HasExited={0} ok={1}" -f $p.HasExited,$ok)
             Get-Process -Name mcart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
             if (-not $p.HasExited) { try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {} }
-            if (-not $ok) { throw '冒烟自测失败：exe 未能成功初始化字体并创建主窗口，详见上方 launch-log' }
+            Start-Sleep -Seconds 1
+            Write-Host '===== [stdout] ====='
+            if (Test-Path $outPath) { Get-Content $outPath -Raw -Encoding UTF8 } else { Write-Host '(无)' }
+            Write-Host '===== [stderr] ====='
+            if (Test-Path $errPath) { Get-Content $errPath -Raw -Encoding UTF8 } else { Write-Host '(无)' }
+            Write-Host '===== [launch-log.txt] ====='
+            if (Test-Path $logPath) { Get-Content $logPath -Raw -Encoding UTF8 } else { Write-Host '(未生成 launch-log.txt)' }
+            if (-not $ok) { throw '冒烟自测失败：exe 未能成功初始化字体并创建主窗口，详见上方 stdout/stderr/launch-log' }
             Write-Host '冒烟自测通过：字体初始化正常，主窗口成功创建。'
           } finally {
             Pop-Location
@@ -130,6 +142,7 @@ jobs:
 
       - name: 打包为 zip（exe + 同目录 dll + lib 字体配置）
         run: |
+          Remove-Item target/dist/smoke-out.txt,target/dist/smoke-err.txt,target/dist/launch-log.txt -ErrorAction SilentlyContinue
           Compress-Archive -Path target/dist/* -DestinationPath mcart-windows-x64.zip -Force
           Write-Host '=== dist 产物清单 ==='
           Get-ChildItem target/dist -Recurse | Select-Object FullName,Length
