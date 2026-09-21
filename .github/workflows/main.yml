@@ -67,7 +67,7 @@ jobs:
       - name: native-image 编译为 mcart.exe（无黑窗 GUI 子系统，长命令单行书写）
         run: |
           New-Item -ItemType Directory -Force target/dist | Out-Null
-          native-image --no-fallback --parallelism=1 --gc=serial -J-Xmx5500m --report-unsupported-elements-at-runtime -cp "target/classes;lib/*" -H:Class=com.axolotl.mcart.Main -o target/dist/mcart -H:+ReportExceptionStackTraces -H:+AddAllCharsets -H:NativeLinkerOption=/SUBSYSTEM:WINDOWS -H:NativeLinkerOption=/ENTRY:mainCRTStartup -H:IncludeResources=Logo/** --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
+          native-image --no-fallback --parallelism=1 --gc=serial -J-Xmx5500m --report-unsupported-elements-at-runtime -cp "target/classes;lib/*" -H:Class=com.axolotl.mcart.Main -o target/dist/mcart -H:+ReportExceptionStackTraces -H:+AddAllCharsets -H:NativeLinkerOption=/SUBSYSTEM:WINDOWS -H:NativeLinkerOption=/ENTRY:mainCRTStartup -H:IncludeResources=Logo/.* --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf
 
       - name: 准备随包字体配置（二进制 fontconfig.bfc + flavormap.properties）
         shell: pwsh
