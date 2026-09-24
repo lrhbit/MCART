@@ -1,5 +1,7 @@
 # MC Pixel Art Generator (MC-ART)
 
+English | [中文](./README_zh_CN.md)
+
 Convert any image into Minecraft pixel art: automatic color selection, dithering, generation of flat or relief block layouts, and export to structure files, commands, data packs, or a bill of materials directly usable in the game.
 
 ## I. Quick Start (5 Steps)
