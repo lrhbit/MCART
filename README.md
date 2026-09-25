@@ -23,7 +23,7 @@ Convert any image into Minecraft pixel art: automatic color selection, dithering
 -   **Central Dual Viewer**: Left is the original image, right is the MC preview (preview mode dropdown in the top-right of the preview area, title bar includes zoom percentage and "Reset" button); the middle divider is draggable; the view menu allows switching between "Full Layout / Preview Only / Original Only".
 -   **Right Vertical Toolbar** (icons only): Generate Preview (blue vortex main button), Export (arrow on tray), Save Project (floppy disk), Bill of Materials (list).
 -   **Bottom Status Bar**: Current dimensions, block types, mode/dithering, and operation tips; warning count is displayed on the title bar bell.
-<img width="639" height="378" alt="image" src="https://github.com/user-attachments/assets/2373e804-378d-48d3-8eef-43812a33290a" />
+<img width="639" height="378" alt="image" src="https://github.com/user-attachments/assets/574a2926-0185-448f-aace-8103a6686d6a" />
 
 
 ## III. Project System (.mcpx)
