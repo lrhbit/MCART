@@ -23,7 +23,8 @@
 - **中央双查看器**：左为原图、右为 MC 预览（预览方式下拉在预览区右上角，标题栏含缩放比例与「复位」按钮），中间分隔条可拖动；视图菜单可切换「完整布局 / 仅预览 / 仅原图」。
 - **右侧竖向工具栏**（纯图标）：生成预览（蓝色旋涡主按钮）、导出（托盘上箭头）、保存工程（软盘）、物料清单（清单）。
 - **底部状态栏**：当前尺寸、方块种类、模式/抖动与操作提示；警告数量显示在标题栏铃铛上。
-<img width="639" height="378" alt="ScreenShot of MC-ART 2026-09-24 161938" src="https://github.com/user-attachments/assets/94c1e39a-5833-45d6-9200-c166aac8dfd0" />
+<img width="639" height="378" alt="image" src="https://github.com/user-attachments/assets/8dab4c37-5c85-4827-abca-28dfe659af9a" />
+
 
 
 ## 三、工程体系（.mcpx）
