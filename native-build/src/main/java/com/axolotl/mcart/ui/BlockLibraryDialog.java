@@ -351,8 +351,7 @@ public class BlockLibraryDialog extends AppDialog {
             checkBox.setSelected(selected);
             checkBox.setPreferredSize(new Dimension(22, 24));
 
-            BufferedImage tex = TextureManager.get(bc);
-            Image scaled = tex.getScaledInstance(26, 26, Image.SCALE_REPLICATE);
+            BufferedImage scaled = TextureManager.getScaled(bc, 26);
             JLabel iconLabel = new JLabel(new ImageIcon(scaled));
             iconLabel.setBorder(new EmptyBorder(0, 0, 0, 4));
 

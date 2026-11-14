@@ -196,7 +196,13 @@ public class SnapshotsDialog extends AppDialog {
             if (s.previewPng != null) {
                 try {
                     BufferedImage img = ImageIO.read(new ByteArrayInputStream(s.previewPng));
-                    if (img != null) icon = new ImageIcon(img.getScaledInstance(72, 56, Image.SCALE_FAST));
+                    if (img != null) {
+                        BufferedImage thumbImg = new BufferedImage(72, 56, BufferedImage.TYPE_INT_ARGB);
+                        Graphics2D g2 = thumbImg.createGraphics();
+                        g2.drawImage(img, 0, 0, 72, 56, null);
+                        g2.dispose();
+                        icon = new ImageIcon(thumbImg);
+                    }
                 } catch (Exception ignored) {
                 }
             }
