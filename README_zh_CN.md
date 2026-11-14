@@ -6,6 +6,8 @@
 
 图形界面基于 Java Swing，使用 FlatLaf 外观与 MigLayout 布局；核心逻辑由 Java 与 Kotlin 混合实现，通过 Gradle 构建。除图形界面外，也提供无界面的命令行模式。
 
+![程序启动后的主界面](./docs/screenshot.png)
+
 ## 目录结构
 
 仓库分为两个目录，应用源码内容一致，区别在于是否包含原生镜像构建所需的文件。

@@ -6,6 +6,8 @@ A desktop application that converts images into Minecraft pixel art. The applica
 
 The graphical interface is built with Java Swing, using the FlatLaf look and feel and MigLayout. The core logic is implemented in a mix of Java and Kotlin and built with Gradle. In addition to the graphical interface, a headless command-line mode is available.
 
+![Main window after startup](./docs/screenshot.png)
+
 ## Repository Layout
 
 The repository is organized into two directories that contain the same application source code. They differ in whether they include the files required for native image builds.
