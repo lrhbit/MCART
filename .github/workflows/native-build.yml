@@ -1,0 +1,222 @@
+name: 原生构建
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+# 所有构建步骤都在 native-build 目录内进行
+jobs:
+  build-windows:
+    name: Windows 原生构建
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: native-build
+
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 安装 Temurin 17（用于 Gradle 构建）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 构建 fat jar
+        run: .\gradlew.bat jar --no-daemon
+
+      - name: 安装 GraalVM 25（native-image 与采集 agent）
+        uses: graalvm/setup-graalvm@v1
+        with:
+          version: '25.0'
+          java-version: '25.0.2'
+          distribution: 'graalvm-community'
+          set-java-home: 'false'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 编译元数据采集器
+        run: |
+          $jar = Get-ChildItem build\libs\*.jar | Select-Object -First 1
+          $javac = "$env:GRAALVM_HOME\bin\javac.exe"
+          & $javac -cp $jar.FullName -d collector-build tools\NativeMetadataCollector.java
+
+      - name: 用 tracing agent 采集运行期元数据
+        run: |
+          $jar = (Get-ChildItem build\libs\*.jar | Select-Object -First 1).FullName
+          New-Item -ItemType Directory -Force -Path trace-config | Out-Null
+          $cp = "collector-build;$jar"
+          $java = "$env:GRAALVM_HOME\bin\java.exe"
+          & $java "-agentlib:native-image-agent=config-output-dir=trace-config" -cp $cp NativeMetadataCollector
+
+      - name: 校验采集结果
+        run: |
+          $meta = Get-ChildItem trace-config\reachability-metadata.json | Select-Object -First 1
+          if ($null -eq $meta) { throw "未生成采集元数据" }
+          $typeCount = @(($meta | Get-Content -Raw | ConvertFrom-Json).reflection).Count
+          Write-Output "采集到反射类型总数：$typeCount"
+          if ($typeCount -lt 150) { throw "采集类型过少（$typeCount）" }
+
+      - name: 组装发布目录与字体配置
+        run: |
+          New-Item -ItemType Directory -Force -Path dist\lib | Out-Null
+          Copy-Item native-resources\fontconfig.bfc dist\lib\fontconfig.bfc
+
+      - name: 构建 Windows 原生镜像
+        run: |
+          $jar = (Get-ChildItem build\libs\*.jar | Select-Object -First 1).FullName
+          $manifest = (Resolve-Path native-resources\mcart.manifest).Path
+          $args = @(
+            "-cp", $jar,
+            "-H:Class=com.axolotl.mcart.Main",
+            "-H:Name=mcart",
+            "-Os",
+            "--initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf",
+            "-H:ConfigurationFileDirectories=native-config,trace-config",
+            "-H:IncludeLocales=zh-CN,en",
+            "-H:+ReportExceptionStackTraces",
+            "--no-fallback",
+            "-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS",
+            "-H:NativeLinkerOption=/ENTRY:mainCRTStartup",
+            "-H:NativeLinkerOption=/MANIFEST:EMBED",
+            "-H:NativeLinkerOption=/MANIFESTINPUT:$manifest"
+          )
+          & "$env:GRAALVM_HOME\bin\native-image.cmd" @args
+
+      - name: 校验 GUI 子系统并分发原生库
+        run: |
+          $bytes = [System.IO.File]::ReadAllBytes("mcart.exe")
+          if (-not ([System.Text.Encoding]::ASCII.GetString($bytes).Contains("dpiAware"))) {
+            throw "exe 未嵌入 DPI 清单"
+          }
+          Move-Item mcart.exe dist\mcart.exe -Force
+          # 应用不使用音频、无障碍、启动器原生闪屏，排除对应 dll
+          $exclude = @('jsound.dll', 'javaaccessbridge.dll', 'splashscreen.dll')
+          Get-ChildItem *.dll | Where-Object { $exclude -notcontains $_.Name } |
+            ForEach-Object { Copy-Item $_.FullName dist\ -Force }
+          Get-ChildItem dist\*.dll | Select-Object -ExpandProperty Name
+
+      - name: 安装 UPX 并压缩原生库（exe 不压缩）
+        run: |
+          choco install upx --no-progress -y
+          Get-ChildItem dist\*.dll | ForEach-Object {
+            & upx -9 $_.FullName
+            if ($LASTEXITCODE -ne 0) { Write-Output "保持原样：$($_.Name)" }
+          }
+
+      - name: 冒烟启动
+        run: |
+          Get-ChildItem -Recurse -Directory -Filter "mc-pixel-art-data" -ErrorAction SilentlyContinue |
+            Remove-Item -Recurse -Force
+          $proc = Start-Process -FilePath .\dist\mcart.exe -PassThru
+          Start-Sleep -Seconds 12
+          if ($proc.HasExited) { throw "启动崩溃，退出码 $($proc.ExitCode)" }
+          $trace = Get-ChildItem .\dist -Recurse -Filter boot-trace.log -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if ($null -eq $trace) { Stop-Process -Id $proc.Id -Force; throw "未生成启动打点" }
+          if (-not (Get-Content $trace.FullName -Raw).Contains("首窗 setVisible")) {
+            Stop-Process -Id $proc.Id -Force; throw "未确认首窗显示"
+          }
+          Stop-Process -Id $proc.Id -Force
+          Remove-Item -Recurse -Force .\dist\mc-pixel-art-data -ErrorAction SilentlyContinue
+          Write-Output "冒烟通过"
+
+      - name: 打包并上传产物
+        run: Compress-Archive -Path dist\* -DestinationPath mcart-windows-native.zip -Force
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcart-windows-native
+          path: native-build/mcart-windows-native.zip
+          if-no-files-found: error
+
+  build-linux:
+    name: Linux 原生构建
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: native-build
+
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 安装 Temurin 17（用于 Gradle 构建）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 构建 fat jar
+        run: chmod +x gradlew && ./gradlew jar --no-daemon
+
+      - name: 安装 GraalVM 25（native-image）
+        uses: graalvm/setup-graalvm@v1
+        with:
+          version: '25.0'
+          java-version: '25.0.2'
+          distribution: 'graalvm-community'
+          set-java-home: 'false'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 构建 Linux 原生镜像（使用系统字体）
+        run: |
+          JAR=$(ls build/libs/*.jar | head -1)
+          "$GRAALVM_HOME/bin/native-image" \
+            -cp "$JAR" \
+            -H:Class=com.axolotl.mcart.Main \
+            -H:Name=mcart \
+            -Os \
+            --initialize-at-run-time=com.axolotl.mcart,com.formdev.flatlaf \
+            -H:ConfigurationFileDirectories=native-config,linux-trace \
+            -H:IncludeLocales=zh-CN,en \
+            -H:+ReportExceptionStackTraces \
+            --no-fallback
+
+      - name: 组装发布目录
+        run: |
+          mkdir -p dist
+          cp mcart dist/
+          # 应用不使用音频、启动器原生闪屏，排除对应 so
+          for so in libawt_headless.so libawt.so libawt_xawt.so libfontmanager.so \
+                    libjavajpeg.so libjava.so libjawt.so libjvm.so liblcms.so libmlib_image.so; do
+            cp "$so" dist/
+          done
+          ls dist/
+
+      - name: 冒烟启动（Xvfb）
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb >/dev/null
+          Xvfb :99 -screen 0 1920x1080x24 >/dev/null 2>&1 &
+          sleep 2
+          rm -rf mc-pixel-art-data
+          DISPLAY=:99 nohup ./dist/mcart > smoke-run.log 2>&1 < /dev/null &
+          APP_PID=$!
+          sleep 12
+          if ! kill -0 "$APP_PID" 2>/dev/null; then
+            echo "启动崩溃，运行日志："; cat smoke-run.log; exit 1
+          fi
+          TRACE=$(find . -name boot-trace.log | head -1)
+          if [ -z "$TRACE" ] || ! grep -q "首窗 setVisible" "$TRACE"; then
+            kill "$APP_PID"; echo "未确认首窗显示"; exit 1
+          fi
+          kill "$APP_PID"
+          # 清理运行时产生的数据目录与临时 lib（程序启动时会自动重建 lib）
+          rm -rf dist/mc-pixel-art-data dist/lib
+          echo "冒烟通过"
+
+      - name: 打包并上传产物
+        run: |
+          cd dist && zip -r ../mcart-linux-native.zip . && cd ..
+          ls -la mcart-linux-native.zip
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcart-linux-native
+          path: native-build/mcart-linux-native.zip
+          if-no-files-found: error
