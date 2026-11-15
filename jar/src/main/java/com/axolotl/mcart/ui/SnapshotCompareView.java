@@ -28,21 +28,11 @@ public final class SnapshotCompareView {
 
     private static JPanel panel(String name, com.axolotl.mcart.model.ProjectState s, BufferedImage img) {
         JPanel panel = new JPanel(new BorderLayout(4, 4));
-        // 用两个普通标签垂直排列，避免依赖 native 下会空白的 HTML 渲染
-        JPanel titleBox = new JPanel();
-        titleBox.setOpaque(false);
-        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
-        JLabel nameLabel = new JLabel(name);
-        nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD));
-        nameLabel.setAlignmentX(JComponent.LEFT_ALIGNMENT);
-        JLabel metaLabel = new JLabel(I18n.t("mode." + s.mode.name())
+        JLabel title = new JLabel("<html><b>" + name + "</b><br>" + I18n.t("mode." + s.mode.name())
                 + " · " + I18n.t("dither." + s.dither.name())
                 + I18n.t("ab.strength") + s.ditherStrength + "% · " + s.mapsW + "×" + s.mapsH
-                + I18n.t("ab.mapsSuffix") + " · " + s.blockIds.size() + I18n.t("ab.kindsSuffix"));
-        metaLabel.setAlignmentX(JComponent.LEFT_ALIGNMENT);
-        titleBox.add(nameLabel);
-        titleBox.add(metaLabel);
-        panel.add(titleBox, BorderLayout.NORTH);
+                + I18n.t("ab.mapsSuffix") + " · " + s.blockIds.size() + I18n.t("ab.kindsSuffix") + "</html>");
+        panel.add(title, BorderLayout.NORTH);
         panel.add(new JScrollPane(new JLabel(new ImageIcon(img))), BorderLayout.CENTER);
         return panel;
     }

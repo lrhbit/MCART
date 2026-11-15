@@ -131,17 +131,13 @@ public class AppDialog extends JDialog {
         return l;
     }
 
-    /** 弱化说明文字（自动换行，不依赖 Swing HTML 引擎，native 下可正常显示）。 */
-    public static JTextArea hintLabel(String text, int widthPx) {
-        JTextArea t = new JTextArea(text);
-        t.setLineWrap(true);
-        t.setWrapStyleWord(true);
-        t.setEditable(false);
-        t.setOpaque(false);
-        t.setFocusable(false);
-        t.setForeground(UiTheme.MUTED_TEXT);
-        t.setFont(t.getFont().deriveFont(12f));
-        return t;
+    /** 弱化说明文字（自动换行的 HTML 标签）。 */
+    public static JLabel hintLabel(String text, int widthPx) {
+        JLabel l = new JLabel("<html><table width='" + ui(widthPx) + "'><tr><td>"
+                + text + "</td></tr></table></html>");
+        l.setForeground(UiTheme.MUTED_TEXT);
+        l.setFont(l.getFont().deriveFont(12f));
+        return l;
     }
 
     /** 让滚动面板与指定底色融为一体（无边框、视口同色、滚动速度适中）。 */

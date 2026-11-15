@@ -169,7 +169,7 @@ public class PixelEditorDialog extends AppDialog {
         tools.add(zoomRow);
 
         tools.add(Box.createVerticalStrut(8));
-        JTextArea hint = hintLabel(I18n.t("pixel.hint2"), 190);
+        JLabel hint = hintLabel(I18n.t("pixel.hint2"), 190);
         hint.setAlignmentX(LEFT_ALIGNMENT);
         tools.add(hint);
         tools.add(Box.createVerticalGlue());
@@ -386,14 +386,13 @@ public class PixelEditorDialog extends AppDialog {
             int right = Math.min(gridW * zoom, x1 * zoom);
             int bottom = Math.min(gridH * zoom, z1 * zoom);
             g.setColor(UiTheme.GRID_LINE);
-            // 用 fillRect 画 1 像素网格线，避免 drawLine 走 ShapeSpanIterator 的 native 描边路径
             for (int x = x0; x <= x1; x++) {
                 int px = Math.min(gridW * zoom, x * zoom);
-                g.fillRect(px, z0 * zoom, 1, bottom - z0 * zoom + 1);
+                g.drawLine(px, z0 * zoom, px, bottom);
             }
             for (int z = z0; z <= z1; z++) {
                 int pz = Math.min(gridH * zoom, z * zoom);
-                g.fillRect(x0 * zoom, pz, right - x0 * zoom + 1, 1);
+                g.drawLine(x0 * zoom, pz, right, pz);
             }
         }
 

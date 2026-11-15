@@ -70,11 +70,12 @@ public class WarningsDialog extends AppDialog {
         list.removeAll();
         Project p = projectSupplier.get();
         List<QualityChecker.Issue> issues = QualityChecker.check(p);
+        int textWidth = Math.max(240, scroll.getViewport().getWidth() - 78);
         if (issues.isEmpty()) {
             list.add(emptyRow());
         } else {
             for (QualityChecker.Issue issue : issues) {
-                list.add(issueRow(issue));
+                list.add(issueRow(issue, textWidth));
                 list.add(Box.createVerticalStrut(8));
             }
         }
@@ -97,7 +98,7 @@ public class WarningsDialog extends AppDialog {
         return row;
     }
 
-    private JComponent issueRow(QualityChecker.Issue issue) {
+    private JComponent issueRow(QualityChecker.Issue issue, int textWidth) {
         RoundedPanel row = card(new BorderLayout(10, 0));
         row.setInsets(new Insets(ui(10), ui(12), ui(10), ui(12)));
         Icon icon = switch (issue.level) {
@@ -108,16 +109,9 @@ public class WarningsDialog extends AppDialog {
         JLabel ic = new JLabel(icon);
         ic.setBorder(new EmptyBorder(2, 0, 0, 2));
         row.add(ic, BorderLayout.WEST);
-        // 用 JTextArea 自动换行，不依赖 Swing HTML 引擎（native 下 HTML 渲染会空白）
-        JTextArea msg = new JTextArea(issue.message);
-        msg.setLineWrap(true);
-        msg.setWrapStyleWord(true);
-        msg.setEditable(false);
-        msg.setOpaque(false);
-        msg.setFocusable(false);
+        JLabel msg = new JLabel("<html><table width='" + textWidth + "'><tr><td>"
+                + issue.message + "</td></tr></table></html>");
         msg.setForeground(UiTheme.SECTION_TITLE);
-        msg.setFont(msg.getFont().deriveFont(Font.PLAIN, 13f));
-        msg.setBorder(new EmptyBorder(2, 0, 0, 0));
         row.add(msg, BorderLayout.CENTER);
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height + ui(8)));
         row.setAlignmentX(LEFT_ALIGNMENT);

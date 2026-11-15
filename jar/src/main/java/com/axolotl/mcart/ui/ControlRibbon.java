@@ -313,8 +313,6 @@ public class ControlRibbon extends JPanel {
                 tf.setOpaque(false);
                 tf.setForeground(UiTheme.ICON_TEXT);
                 tf.setCaretColor(UiTheme.ICON_TEXT);
-                // 聚焦时临时关闭中文输入法组合，让数字直接上屏，失焦后恢复
-                com.axolotl.mcart.util.InputMethodHints.disableCompositionWhileFocused(tf);
             }
         }
 

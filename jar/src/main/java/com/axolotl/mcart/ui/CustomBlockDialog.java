@@ -29,7 +29,6 @@ public class CustomBlockDialog extends AppDialog {
     private static JSpinner spinner(int v) {
         JSpinner sp = new JSpinner(new SpinnerNumberModel(v, 0, 255, 1));
         sp.setPreferredSize(new Dimension(ui(70), ui(28)));
-        com.axolotl.mcart.util.InputMethodHints.disableCompositionWhileFocused(sp);
         return sp;
     }
 
@@ -37,7 +36,7 @@ public class CustomBlockDialog extends AppDialog {
         JPanel body = new JPanel(new BorderLayout(0, 10));
         body.setOpaque(false);
 
-        JTextArea hint = hintLabel(I18n.t("custom.hint").replace("\n", " "), 420);
+        JLabel hint = hintLabel(I18n.t("custom.hint").replace("\n", " "), 420);
         body.add(hint, BorderLayout.NORTH);
 
         RoundedPanel card = card(new GridBagLayout());

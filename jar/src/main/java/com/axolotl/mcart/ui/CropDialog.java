@@ -58,7 +58,7 @@ public class CropDialog extends AppDialog {
                 int dh = (int) Math.round(image.getHeight() * scale);
                 g2.drawImage(image, offX, offY, dw, dh, null);
                 g2.setColor(UiTheme.alpha(UiTheme.BORDER, 180));
-                outlineRect(g2, offX - 1, offY - 1, dw + 1, dh + 1, 1);
+                g2.drawRect(offX - 1, offY - 1, dw + 1, dh + 1);
                 if (hasSelection) {
                     int x = offX + (int) Math.round(rx * image.getWidth() * scale);
                     int y = offY + (int) Math.round(ry * image.getHeight() * scale);
@@ -70,7 +70,8 @@ public class CropDialog extends AppDialog {
                             Math.round(rx * image.getWidth()), Math.round(ry * image.getHeight()),
                             Math.round((rx + rw) * image.getWidth()), Math.round((ry + rh) * image.getHeight()), null);
                     g2.setColor(UiTheme.ACCENT);
-                    outlineRect(g2, x, y, w, h, 2);
+                    g2.setStroke(new BasicStroke(2));
+                    g2.drawRect(x, y, w, h);
                 }
                 g2.dispose();
             }
@@ -149,9 +150,6 @@ public class CropDialog extends AppDialog {
         };
         xSp.addChangeListener(cl); ySp.addChangeListener(cl);
         wSp.addChangeListener(cl); hSp.addChangeListener(cl);
-        for (JSpinner sp : new JSpinner[]{xSp, ySp, wSp, hSp}) {
-            com.axolotl.mcart.util.InputMethodHints.disableCompositionWhileFocused(sp);
-        }
         syncSpinners();
 
         // —— 底部：控制卡片 + 按钮栏 ——
@@ -178,22 +176,6 @@ public class CropDialog extends AppDialog {
         root.add(southAll, BorderLayout.SOUTH);
 
         setupSize(760, 640);
-    }
-
-    /**
-     * 用 fillRect 绘制矩形边框，等价于非抗锯齿下的 drawRect（线宽 t，沿路径居中）。
-     * 避免 drawRect 走 ShapeSpanIterator 的 native 描边路径（原生镜像缺少其 JNI 字段元数据）。
-     */
-    private static void outlineRect(Graphics2D g, int x, int y, int w, int h, int t) {
-        int out = t / 2;
-        int left = x - out, right = x + w + out;
-        int top = y - out, bottom = y + h + out;
-        int bw = right - left + 1;  // 水平边宽度
-        int bh = bottom - top + 1;  // 垂直边高度
-        g.fillRect(left, top, bw, t);                 // 上边
-        g.fillRect(left, bottom - t + 1, bw, t);      // 下边
-        g.fillRect(left, top, t, bh);                 // 左边
-        g.fillRect(right - t + 1, top, t, bh);        // 右边
     }
 
     private static int intVal(JSpinner sp) { return ((Number) sp.getValue()).intValue(); }

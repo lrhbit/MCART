@@ -16,10 +16,6 @@ import java.awt.*;
 public class Main {
 
     public static void main(String[] args) {
-        // 原生镜像适配必须在任何 AWT 类初始化之前完成
-        ensureJavaHome();
-        com.axolotl.mcart.util.NativeRuntimeHealer.heal();
-        com.axolotl.mcart.util.BootLog.mark("main 入口");
         // 无头 CLI 模式：不启动 GUI
         if (args.length > 0 && (args[0].equals("--cli") || args[0].equals("-c"))) {
             int code = Cli.run(args);
@@ -31,86 +27,23 @@ public class Main {
         I18n.setLanguage(AppConfig.language());
         CrashReporter.install();
         setupLookAndFeel(AppConfig.theme());
-        com.axolotl.mcart.util.BootLog.mark("外观就绪");
 
         if (SystemInfo.isLinux) {
             JFrame.setDefaultLookAndFeelDecorated(true);
             JDialog.setDefaultLookAndFeelDecorated(true);
         }
 
-        // 主窗口创建前先显示应用内闪屏（native 下替代 java 启动器原生闪屏）
-        com.axolotl.mcart.util.AppSplash.show();
-
-        // 用后台线程编排启动，避免在 EDT 上 sleep；保证闪屏关闭后再显示主窗口
-        Thread starter = new Thread(() -> {
-            try {
-                // 闪屏展示期间，在 EDT 上构建主窗口（先不显示）
-                final MainFrame[] holder = new MainFrame[1];
-                SwingUtilities.invokeAndWait(() -> holder[0] = new MainFrame());
-                MainFrame frame = holder[0];
-                // 补足闪屏最短展示时长，避免性能好的机器上一闪而过
-                com.axolotl.mcart.util.AppSplash.awaitMinimum();
-                // 先关闭闪屏，再让主窗口可见，避免主窗口空背景从闪屏下露出
-                com.axolotl.mcart.util.AppSplash.close();
-                SwingUtilities.invokeAndWait(() -> {
-                    frame.setVisible(true);
-                    com.axolotl.mcart.util.BootLog.mark("首窗 setVisible",
-                            java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
-                                    .getDefaultScreenDevice().getDefaultConfiguration()
-                                    .getDefaultTransform().getScaleX());
-                });
-                frame.loadWindowIconAsync();
-                SwingUtilities.invokeLater(() -> {
-                    if (loadSample) frame.openSampleProject();
-                    else frame.restoreSessionIfAny();
-                });
-                warmTexturesInBackground();
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-        }, "启动编排");
-        starter.setDaemon(true);
-        starter.start();
-    }
-
-    /**
-     * 原生镜像下 java.home 可能未设置，导致字体配置初始化失败。
-     * 缺失时用当前可执行文件位置推断其根目录，再退回工作目录。
-     */
-    private static void ensureJavaHome() {
-        String home = System.getProperty("java.home");
-        if (home != null && !home.isBlank()) return;
-        String inferred = null;
-        try {
-            java.util.Optional<String> cmd = ProcessHandle.current().info().command();
-            if (cmd.isPresent()) {
-                java.nio.file.Path exe = java.nio.file.Paths.get(cmd.get());
-                java.nio.file.Path home0 = exe.getParent();
-                // 标准 JDK 布局为 home/bin/exe，需上一层；原生镜像布局为 home/exe，直接用父目录
-                if (home0 != null && "bin".equals(
-                        home0.getFileName() != null ? home0.getFileName().toString() : "")) {
-                    home0 = home0.getParent();
-                }
-                if (home0 != null) inferred = home0.toString();
-            }
-        } catch (Throwable ignored) {
-        }
-        if (inferred == null || inferred.isBlank()) {
-            inferred = System.getProperty("user.dir");
-        }
-        System.setProperty("java.home", inferred);
-        System.out.println("[boot] java.home 未设置，已推断为 " + inferred);
-        System.out.flush();
-        // Linux 原生镜像下，字体子系统依据 java.home/lib 是否存在决定是否走系统 fontconfig
-        // （FcFontConfiguration）。该目录缺失时会跳过系统字体并因读不到 fontconfig 文件而崩溃，
-        // 这里确保目录存在，使其使用 Linux 默认字体。
-        try {
-            java.io.File libDir = new java.io.File(inferred, "lib");
-            if (!libDir.exists()) {
-                libDir.mkdirs();
-            }
-        } catch (Throwable ignored) {
-        }
+        SwingUtilities.invokeLater(() -> {
+            MainFrame frame = new MainFrame();
+            // 先让首窗绘制出来，再做示例 / 会话恢复 / 窗口图标这类可能较重的工作
+            frame.setVisible(true);
+            frame.loadWindowIconAsync();
+            SwingUtilities.invokeLater(() -> {
+                if (loadSample) frame.openSampleProject();
+                else frame.restoreSessionIfAny();
+            });
+            warmTexturesInBackground();
+        });
     }
 
     /** 首屏显示后在后台线程预加载默认方块纹理，避免首次生成 / 打开方块库时卡顿。 */

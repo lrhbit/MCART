@@ -168,7 +168,6 @@ public class PreprocessDialog extends AppDialog {
     private JSpinner numberSpinner(int min, int max, int val) {
         JSpinner sp = new JSpinner(new SpinnerNumberModel(val, min, max, 1));
         sp.setPreferredSize(new Dimension(ui(62), ui(28)));
-        com.axolotl.mcart.util.InputMethodHints.disableCompositionWhileFocused(sp);
         return sp;
     }
 

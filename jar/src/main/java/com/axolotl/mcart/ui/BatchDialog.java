@@ -58,9 +58,6 @@ public class BatchDialog extends AppDialog {
         strengthSpinner.setValue(template.getDitherStrength());
         mapW.setValue(template.getMapsW());
         mapH.setValue(template.getMapsH());
-        for (JSpinner sp : new JSpinner[]{strengthSpinner, mapW, mapH}) {
-            com.axolotl.mcart.util.InputMethodHints.disableCompositionWhileFocused(sp);
-        }
     }
 
     private static DefaultListCellRenderer render(java.util.function.Function<Object, String> textOf) {

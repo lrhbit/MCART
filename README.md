@@ -10,12 +10,14 @@ The graphical interface is built with Java Swing, using the FlatLaf look and fee
 
 ## Repository Layout
 
-The repository is organized into two directories that contain the same application source code. They differ in whether they include the files required for native image builds.
+The repository is organized into two directories: the original Java version and a version adapted for native image. Their source code is not identical.
 
 | Directory | Contents | Purpose |
 |---|---|---|
-| `jar/` | Full Java and Kotlin source with Gradle build scripts, without native build files | Build a runnable fat jar |
-| `native-build/` | Extends `jar/` with native image configuration, metadata, a collector, and resources | Build native executables for each platform; CI runs in this directory |
+| `jar/` | The original Java and Kotlin source with Gradle build scripts, without native adaptations or native build files | Build a runnable fat jar |
+| `native-build/` | Adds native-adaptation code to the original version, along with native image configuration, metadata, a collector, and resources | Build native executables for each platform; CI runs in this directory |
+
+The source in `native-build/` contains adjustments required for GraalVM native image (such as working around missing JNI/reflection access in some internal classes, and adding run-time self-healing and an in-app splash screen), while keeping the core functionality and UI consistent.
 
 Native build-related directories inside `native-build/`:
 

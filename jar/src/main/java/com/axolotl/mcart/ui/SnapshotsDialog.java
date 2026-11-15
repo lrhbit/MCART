@@ -26,7 +26,7 @@ public class SnapshotsDialog extends AppDialog {
     private final DefaultListModel<Project.NamedSnapshot> model = new DefaultListModel<>();
     private final JList<Project.NamedSnapshot> list;
     private Project.NamedSnapshot a, b;
-    private JTextArea emptyLabel;
+    private JLabel emptyLabel;
     private JScrollPane scrollPane;
     private final JLabel aLabel = new JLabel(I18n.t("snap.aNone"));
     private final JLabel bLabel = new JLabel(I18n.t("snap.bNone"));
@@ -47,17 +47,12 @@ public class SnapshotsDialog extends AppDialog {
         listCard.setInsets(new Insets(ui(8), ui(8), ui(8), ui(8)));
         JScrollPane scroll = new JScrollPane(list);
         blendScroll(scroll, UiTheme.CARD_BG, false);
-        JTextArea emptyLabel = hintLabel(I18n.t("snap.emptyHint"), 380);
+        JLabel emptyLabel = hintLabel(I18n.t("snap.emptyHint"), 380);
+        emptyLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        emptyLabel.setVerticalAlignment(SwingConstants.CENTER);
         emptyLabel.setBorder(new EmptyBorder(ui(24), ui(16), ui(24), ui(16)));
-        // 用 GridBagLayout 容器让自动换行的文本在区域内水平、垂直居中
-        JPanel emptyWrap = new JPanel(new GridBagLayout());
-        emptyWrap.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0, ui(16), 0, ui(16));
-        emptyWrap.add(emptyLabel, gbc);
         listCard.add(scroll, BorderLayout.CENTER);
-        listCard.add(emptyWrap, BorderLayout.CENTER);
+        listCard.add(emptyLabel, BorderLayout.CENTER);
         this.emptyLabel = emptyLabel;
         this.scrollPane = scroll;
         body.add(listCard, BorderLayout.CENTER);
@@ -196,13 +191,7 @@ public class SnapshotsDialog extends AppDialog {
             if (s.previewPng != null) {
                 try {
                     BufferedImage img = ImageIO.read(new ByteArrayInputStream(s.previewPng));
-                    if (img != null) {
-                        BufferedImage thumbImg = new BufferedImage(72, 56, BufferedImage.TYPE_INT_ARGB);
-                        Graphics2D g2 = thumbImg.createGraphics();
-                        g2.drawImage(img, 0, 0, 72, 56, null);
-                        g2.dispose();
-                        icon = new ImageIcon(thumbImg);
-                    }
+                    if (img != null) icon = new ImageIcon(img.getScaledInstance(72, 56, Image.SCALE_FAST));
                 } catch (Exception ignored) {
                 }
             }

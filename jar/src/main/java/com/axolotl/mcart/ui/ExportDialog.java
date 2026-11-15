@@ -70,7 +70,6 @@ public class ExportDialog extends AppDialog {
         scaleLabel.setToolTipText(I18n.t("export.pngScaleTip"));
         optCard.add(scaleLabel, BorderLayout.WEST);
         scaleSpinner.setPreferredSize(new Dimension(96, 28));
-        com.axolotl.mcart.util.InputMethodHints.disableCompositionWhileFocused(scaleSpinner);
         optCard.add(scaleSpinner, BorderLayout.EAST);
         body.add(optCard, BorderLayout.SOUTH);
         syncScaleEnabled();
